@@ -1,5 +1,3 @@
-# engine/screens/pause_menu.py
-
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
@@ -32,17 +30,18 @@ class PauseMenu(QWidget):
         exit_to_main_menu_button.clicked.connect(self.exit_to_main_menu)
         layout.addWidget(exit_to_main_menu_button)
 
-        # Установка макета
         self.setLayout(layout)
 
     def continue_game(self):
-        """ Продолжить """
+        """Продолжить игру."""
         print("Продолжение игры...")
-        if self.parent:
-            self.parent.setCurrentWidget(self.parent.game_screen)  # Возвращаемся к игровому экрану
+        if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
+            self.parent.game_screen.toggle_pause()
+            self.parent.setCurrentWidget(self.parent.game_screen)
 
     def exit_to_main_menu(self):
-        """ Выйти в главное меню"""
+        """Выйти в главное меню."""
         print("Выход в главное меню...")
-        if self.parent:
-            self.parent.setCurrentWidget(self.parent.main_menu)  # Возвращаемся к главному меню
+        if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
+            self.parent.game_screen.toggle_pause()
+            self.parent.setCurrentWidget(self.parent.main_menu)
