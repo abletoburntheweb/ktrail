@@ -1,37 +1,37 @@
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QMessageBox
-from PyQt5.QtGui import QPainter, QColor, QBrush
+from engine.day_night import DayNightSystem
 from engine.player import Player
 from engine.obstacle import Obstacle, PowerLine
+
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
 
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+
+        # Загрузка текстур
+        self.asphalt_texture = QPixmap("assets/textures/asf.png")
+        self.grass_texture = QPixmap("assets/textures/grass.png")
+
+        # Инициализация системы дня и ночи
+        self.day_night = DayNightSystem()
+
         self.init_ui()
 
         # Параметры для тайлов
         self.tile_size = 192
         self.rows = 6
         self.columns = 10
-        self.tile_colors = [
-            QColor(255, 0, 0),
-            QColor(0, 0, 255),
-            QColor(0, 255, 0),
-            QColor(255, 255, 0),
-            QColor(255, 0, 255),
-            QColor(0, 255, 255),
-            QColor(128, 0, 0),
-            QColor(0, 128, 0),
-            QColor(0, 0, 128),
-            QColor(128, 128, 0)
-        ]
-        self.current_color_index = 0
-        self.tile_positions = []
 
+        self.initialize_tiles()
+
+        # Игрок
         self.player = Player()
 
+        # Клавиши
         self.key_states = {
             Qt.Key_W: False,
             Qt.Key_S: False,
@@ -39,49 +39,80 @@ class GameScreen(QWidget):
             Qt.Key_D: False
         }
 
-        self.initialize_tiles()
-
+        # Препятствия
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
         self.obstacle_spawn_timer.start(2000)
 
-        self.power_line = PowerLine(
-            line_width=10,  # Ширина линий
-            color=QColor(0, 255, 255)  # Голубой цвет
-        )
-
-        # Таймер для анимации движения тайлов (60 FPS)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_game)
-        self.timer.start(16)  # Обновление каждые ~16 мс (≈60 FPS)
-
-        self.is_game_over = False
-
-        self.debug_counter = 0
-        self.debug_interval = 60  # Вывод раз в ~1 секунду (60 кадров ≈ 1 секунда)
-
-        self.total_removed_obstacles = 0
+        # Линии
+        self.power_line = PowerLine(line_width=10, color=QColor(0, 255, 255))
 
         # Трейл игрока
         self.trail = []
         self.max_trail_length = 50
         self.trail_alpha_step = 255 // self.max_trail_length
 
+        # Таймер игры
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_game)
+        self.timer.start(16)
+
+        self.is_game_over = False
+        self.total_removed_obstacles = 0
+        self.debug_counter = 0
+        self.debug_interval = 60
+
+        # Таймер обновления времени
+        self.time_timer = QTimer(self)
+        self.time_timer.timeout.connect(self.update_day_night)
+        self.time_timer.start(self.day_night.tick_interval_ms)
+
     def init_ui(self):
-        """Инициализация интерфейса."""
         self.setWindowTitle("Игровой экран")
         self.setFixedSize(1920, 1080)
 
     def initialize_tiles(self):
-        """Инициализация начальных позиций тайлов."""
-        blue_tile_x = (self.columns // 2 - 2) * self.tile_size
-        green_tile_x = (self.columns // 2 + 2) * self.tile_size
+        """Создаёт начальные тайлы по всей ширине"""
+        self.tile_positions = []
+        for row in range(self.rows):
+            for col in range(self.columns):
+                x = col * self.tile_size
+                y = row * self.tile_size-1
+                if col < 4:
+                    tile_type = "asphalt"
+                else:
+                    tile_type = "grass"
+                self.tile_positions.append((x, y, tile_type))
 
-        y = 0
+    def update_day_night(self):
+        self.day_night.update_time()
+        self.update()
 
-        self.tile_positions.append((blue_tile_x, y, 1))  # 1 = индекс синего цвета
-        self.tile_positions.append((green_tile_x, y, 2))  # 2 = индекс зеленого цвета
+    def move_tiles_down(self):
+        """Перемещение тайлов вниз и добавление новых сверху"""
+        new_tile_positions = []
+        for x, y, tile_type in self.tile_positions:
+            y += 2
+            if y <= self.height():
+                new_tile_positions.append((x, y, tile_type))
+
+        # Проверяем, нужно ли добавить новые тайлы сверху
+        for col in range(self.columns):
+            x = col * self.tile_size
+            if col < 4:
+                tile_type = "asphalt"
+            else:
+                tile_type = "grass"
+
+            # Проверяем, есть ли уже тайл наверху
+            top_y = -self.tile_size+1
+            has_top_tile = any(x == tx and ty <= 0 and ty > -self.tile_size for tx, ty, _ in new_tile_positions)
+
+            if not has_top_tile:
+                new_tile_positions.append((x, top_y, tile_type))
+
+        self.tile_positions = new_tile_positions
 
     def spawn_obstacle(self):
         """Генерация нового препятствия."""
@@ -89,105 +120,100 @@ class GameScreen(QWidget):
             obstacle = Obstacle(self.width(), self.height())
             self.obstacles.append(obstacle)
 
-    def move_tiles_down(self):
-        """Перемещение тайлов вниз и добавление новых."""
-        new_tile_positions = []
-        for x, y, color_index in self.tile_positions:
-            y += 2
-            if y <= self.height():
-                new_tile_positions.append((x, y, color_index))
-
-        if len(new_tile_positions) < 2:
-            blue_tile_x = (self.columns // 2 - 2) * self.tile_size
-            green_tile_x = (self.columns // 2 + 2) * self.tile_size
-
-            # Добавляем новый синий тайл
-            new_tile_positions.append((blue_tile_x, -self.tile_size, 1))  # 1 = индекс синего цвета
-            # Добавляем новый зеленый тайл
-            new_tile_positions.append((green_tile_x, -self.tile_size, 2))  # 2 = индекс зеленого цвета
-
-        self.tile_positions = new_tile_positions
-
     def paintEvent(self, event):
         """Отрисовка тайлов, игрока, препятствий, трейла и линий."""
         painter = QPainter(self)
 
-        # Отрисовка тайлов
-        for x, y, color_index in self.tile_positions:
-            color = self.tile_colors[color_index]
-            painter.fillRect(x, y, self.tile_size, self.tile_size, color)
+        # 1. Рисуем тайлы с текстурами
+        for x, y, tile_type in self.tile_positions:
+            texture = self.asphalt_texture if tile_type == "asphalt" else self.grass_texture
+            scaled = texture.scaled(self.tile_size, self.tile_size)
+            painter.drawPixmap(x, y, scaled)
 
-        # Отрисовка трейла игрока
+        # 2. Накладываем градиент дня/ночи
+        gradient = self.day_night.get_background_gradient(self.height())
+        painter.setBrush(gradient)
+        painter.setPen(Qt.NoPen)
+        painter.drawRect(self.rect())
+
+        # 3. Отрисовка трейла
         for i, (x, y) in enumerate(self.trail):
-            # Нелинейное затухание (квадратичное)
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
             color = QColor(0, 0, 0, max(0, alpha))
             painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
 
-        # Отрисовка игрока
+        # 4. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
-        # Отрисовка препятствий
+        # 5. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
 
-        # Отрисовка линий PowerLine
+        # 6. Отрисовка линий
         self.power_line.draw(painter, self.height())
 
+        # 7. Фонарь при переходе ночи
+        if self.day_night.should_draw_light():
+            light_pos = self.mapFromGlobal(self.cursor().pos())
+            light_radius = 120
+            light_gradient = QRadialGradient(light_pos, light_radius)
+            light_gradient.setColorAt(0, QColor(255, 240, 200, 120))
+            light_gradient.setColorAt(1, QColor(255, 240, 200, 0))
+            painter.setBrush(light_gradient)
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(light_pos, light_radius, light_radius)
+
     def keyPressEvent(self, event):
-        """Обработка нажатий клавиш."""
         if event.key() == Qt.Key_Escape:
-            print("Пауза...")
             self.toggle_pause()
+        elif event.text() == '~':
+            if self.parent:
+                if self.parent.debug_menu.isVisible():
+                    self.parent.debug_menu.hide()
+                else:
+                    self.parent.debug_menu.update_debug_info(self.day_night)
+                    self.parent.debug_menu.show()
+                    self.parent.debug_menu.raise_()
+                    self.parent.debug_menu.setFocus()
         elif event.key() in self.key_states:
             self.key_states[event.key()] = True
 
     def keyReleaseEvent(self, event):
-        """Обработка отпускания клавиш."""
         if event.key() in self.key_states:
             self.key_states[event.key()] = False
 
     def update_game(self):
-        """Обновление игрового процесса."""
         if self.is_game_over:
             return
 
+        # Движение игрока
         for key, pressed in self.key_states.items():
             if pressed:
                 self.player.move(key)
 
+        # Обновление трейла
         self.trail.insert(0, (self.player.x, self.player.y))
         if len(self.trail) > self.max_trail_length:
             self.trail.pop()
-
         self.trail = [(x, y + 2) for x, y in self.trail]
 
+        # Движение препятствий
         for obstacle in self.obstacles:
             obstacle.move()
 
-        delete_y = 540
+        # Удаление ушедших за экран
         initial_count = len(self.obstacles)
-        removed_count = 0
-        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(delete_y)]
-        removed_count = initial_count - len(self.obstacles)
+        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
+        self.total_removed_obstacles += initial_count - len(self.obstacles)
 
-        self.total_removed_obstacles += removed_count
-
-        self.debug_counter += 1
-        if self.debug_counter >= self.debug_interval:
-            self.debug_counter = 0
-            print(f"Суммарно удалено препятствий: {self.total_removed_obstacles}, осталось: {len(self.obstacles)}")
-
+        # Проверка коллизий
         self.check_collisions()
 
+        # Перемещение тайлов
         self.move_tiles_down()
         self.update()
 
     def check_collisions(self):
-        """Проверка столкновений игрока с препятствиями."""
-        if self.is_game_over:
-            return
-
         player_rect = self.player.get_rect()
         for obstacle in self.obstacles:
             if player_rect.intersects(obstacle.get_rect()):
@@ -195,32 +221,41 @@ class GameScreen(QWidget):
                 return
 
     def show_game_over(self):
-        """Показывает сообщение о проигрыше."""
         self.is_game_over = True
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
 
-        msg_box = QMessageBox()
-        msg_box.setWindowTitle("Конец игры")
-        msg_box.setText("Вы проиграли!")
-        msg_box.setIcon(QMessageBox.Critical)
-        msg_box.exec_()
+        msg = QMessageBox()
+        msg.setWindowTitle("Конец игры")
+        msg.setText("Вы проиграли!")
+        msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
+        msg.setIcon(QMessageBox.Critical)
+        choice = msg.exec_()
 
-        if self.parent:
-            self.parent.setCurrentWidget(self.parent.main_menu)
+        if choice == QMessageBox.Retry:
+            self.reset_game()
+            self.update()
+        else:
+            if self.parent:
+                self.parent.setCurrentWidget(self.parent.main_menu)
 
     def reset_game(self):
-        """Сброс состояния игры."""
+        """Сброс состояния игры и полный рестарт."""
         self.player = Player()
         self.obstacles.clear()
         self.trail.clear()
         self.is_game_over = False
-        self.timer.stop()
-        self.obstacle_spawn_timer.stop()
+
+        # Пересоздаём тайлы
+        self.initialize_tiles()
+
+        # Перезапускаем таймеры
+        self.timer.start(16)
+        self.obstacle_spawn_timer.start(2000)
+
         self.total_removed_obstacles = 0
 
     def toggle_pause(self):
-        """Переключение состояния паузы."""
         if hasattr(self, "is_paused"):
             self.is_paused = not self.is_paused
         else:
