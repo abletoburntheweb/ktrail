@@ -9,6 +9,7 @@ class SettingsMenu(QWidget):
         super().__init__(parent)
         self.parent = parent
         self.is_fullscreen = False
+        self.previous_screen = None
         self.init_ui()
 
     def init_ui(self):
@@ -18,22 +19,20 @@ class SettingsMenu(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
 
-        # Заголовок
         title_label = QLabel("Настройки")
         title_label.setFont(QFont("Arial", 36, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
-        # Кнопка переключения полноэкранного режима
         self.fullscreen_toggle = QCheckBox("Полноэкранный режим")
         self.fullscreen_toggle.setFont(QFont("Arial", 18))
         self.fullscreen_toggle.setChecked(self.is_fullscreen)
         self.fullscreen_toggle.stateChanged.connect(self.toggle_fullscreen)
         layout.addWidget(self.fullscreen_toggle)
 
-        back_button = QPushButton("Вернуться в главное меню")
+        back_button = QPushButton("Назад")
         back_button.setFont(QFont("Arial", 18))
-        back_button.clicked.connect(self.return_to_main_menu)
+        back_button.clicked.connect(self.return_to_previous_screen)
         layout.addWidget(back_button)
 
         self.setLayout(layout)
@@ -48,8 +47,21 @@ class SettingsMenu(QWidget):
             self.parent.showNormal()
             self.is_fullscreen = False
 
-    def return_to_main_menu(self):
-        """ Вернуться в главное меню """
-        print("Возвращение в главное меню...")
-        if self.parent:
-            self.parent.setCurrentWidget(self.parent.main_menu)
+    def set_previous_screen(self, screen_name):
+        """Устанавливает предыдущий экран."""
+        self.previous_screen = screen_name
+
+    def return_to_previous_screen(self):
+        """Возвращает пользователя на предыдущий экран."""
+        if self.previous_screen == "pause_menu":
+            print("Возвращение в меню паузы...")
+            if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
+                self.parent.setCurrentWidget(self.parent.pause_menu)
+        elif self.previous_screen == "main_menu":
+            print("Возвращение в главное меню...")
+            if self.parent:
+                self.parent.setCurrentWidget(self.parent.main_menu)
+        else:
+            print("Неизвестный предыдущий экран. Возвращаемся в главное меню...")
+            if self.parent:
+                self.parent.setCurrentWidget(self.parent.main_menu)

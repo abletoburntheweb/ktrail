@@ -46,9 +46,10 @@ class MainMenu(QWidget):
             self.parent.setCurrentWidget(self.parent.game_screen)
 
     def open_settings(self):
-        """ Настройки """
+        """Настройки"""
         print("Открытие настроек...")
         if self.parent:
+            self.parent.settings_menu.set_previous_screen("main_menu")
             self.parent.setCurrentWidget(self.parent.settings_menu)
 
     def exit_game(self):
