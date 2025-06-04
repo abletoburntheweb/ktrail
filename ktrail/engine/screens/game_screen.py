@@ -2,7 +2,8 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush
 from engine.player import Player
-from engine.obstacle import Obstacle
+from engine.obstacle import Obstacle, PowerLine
+
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -44,6 +45,11 @@ class GameScreen(QWidget):
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
         self.obstacle_spawn_timer.start(2000)
+
+        self.power_line = PowerLine(
+            line_width=10,  # Ширина линий
+            color=QColor(0, 255, 255)  # Голубой цвет
+        )
 
         # Таймер для анимации движения тайлов (60 FPS)
         self.timer = QTimer(self)
@@ -103,23 +109,30 @@ class GameScreen(QWidget):
         self.tile_positions = new_tile_positions
 
     def paintEvent(self, event):
-        """Отрисовка тайлов, игрока, препятствий и трейла."""
+        """Отрисовка тайлов, игрока, препятствий, трейла и линий."""
         painter = QPainter(self)
 
+        # Отрисовка тайлов
         for x, y, color_index in self.tile_positions:
             color = self.tile_colors[color_index]
             painter.fillRect(x, y, self.tile_size, self.tile_size, color)
 
+        # Отрисовка трейла игрока
         for i, (x, y) in enumerate(self.trail):
             # Нелинейное затухание (квадратичное)
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
             color = QColor(0, 0, 0, max(0, alpha))
             painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
 
+        # Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
+        # Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
+
+        # Отрисовка линий PowerLine
+        self.power_line.draw(painter, self.height())
 
     def keyPressEvent(self, event):
         """Обработка нажатий клавиш."""
