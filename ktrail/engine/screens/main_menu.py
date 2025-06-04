@@ -40,9 +40,10 @@ class MainMenu(QWidget):
         self.setLayout(layout)
 
     def start_game(self):
-        """ Начать игру """
+        """Начать игру."""
         print("Запуск игры...")
         if self.parent:
+            self.parent.game_screen.reset_game()
             self.parent.setCurrentWidget(self.parent.game_screen)
 
     def open_settings(self):

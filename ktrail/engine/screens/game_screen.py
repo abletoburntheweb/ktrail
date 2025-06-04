@@ -1,9 +1,10 @@
-# engine/screens/game_screen.py
+# engine/game_screen.py
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush
 from engine.player import Player
+from engine.obstacle import Obstacle  # Импортируем класс Obstacle
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -41,10 +42,20 @@ class GameScreen(QWidget):
 
         self.initialize_tiles()
 
+        # Препятствия
+        self.obstacles = []
+        self.obstacle_spawn_timer = QTimer(self)
+        self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
+        self.obstacle_spawn_timer.start(2000)  # Генерация нового препятствия каждые 2 секунды
+
         # Таймер для анимации движения тайлов (60 FPS)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
         self.timer.start(16)  # Обновление каждые ~16 мс (≈60 FPS)
+
+        self.is_game_over = False
+
+        self.reset_game()
 
     def init_ui(self):
         """Инициализация интерфейса."""
@@ -58,10 +69,15 @@ class GameScreen(QWidget):
 
         y = 0
 
-        # Добавляем синий тайл
         self.tile_positions.append((blue_tile_x, y, 1))  # 1 = индекс синего цвета
-        # Добавляем зеленый тайл
+
         self.tile_positions.append((green_tile_x, y, 2))  # 2 = индекс зеленого цвета
+
+    def spawn_obstacle(self):
+        """Генерация нового препятствия."""
+        if not self.is_game_over:
+            obstacle = Obstacle(self.width(), self.height())
+            self.obstacles.append(obstacle)
 
     def move_tiles_down(self):
         """Перемещение тайлов вниз."""
@@ -74,7 +90,7 @@ class GameScreen(QWidget):
         self.tile_positions = new_tile_positions
 
     def paintEvent(self, event):
-        """Отрисовка тайлов и игрока."""
+        """Отрисовка тайлов, игрока и препятствий."""
         painter = QPainter(self)
 
         for x, y, color_index in self.tile_positions:
@@ -82,6 +98,9 @@ class GameScreen(QWidget):
             painter.fillRect(x, y, self.tile_size, self.tile_size, color)
 
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
+
+        for obstacle in self.obstacles:
+            painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
 
     def keyPressEvent(self, event):
         """Обработка нажатий клавиш."""
@@ -98,11 +117,58 @@ class GameScreen(QWidget):
 
     def update_game(self):
         """Обновление игрового процесса."""
+        if self.is_game_over:
+            return
+
         for key, pressed in self.key_states.items():
             if pressed:
                 self.player.move(key)
+
+        for obstacle in self.obstacles:
+            obstacle.move()
+
+        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(self.height())]
+
+        self.check_collisions()
+
         self.move_tiles_down()
         self.update()
+
+    def check_collisions(self):
+        """Проверка столкновений игрока с препятствиями."""
+        if self.is_game_over:
+            return
+
+        player_rect = self.player.get_rect()
+        for obstacle in self.obstacles:
+            if player_rect.intersects(obstacle.get_rect()):
+                self.show_game_over()
+                return
+
+    def show_game_over(self):
+        """Показывает сообщение о проигрыше."""
+        self.is_game_over = True
+        self.timer.stop()
+        self.obstacle_spawn_timer.stop()
+
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle("Конец игры")
+        msg_box.setText("Вы проиграли!")
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.exec_()
+
+        if self.parent:
+            self.parent.setCurrentWidget(self.parent.main_menu)
+
+    def reset_game(self):
+        """Сброс состояния игры."""
+        self.player = Player()
+        self.obstacles.clear()
+        self.is_game_over = False
+        self.timer.stop()
+        self.obstacle_spawn_timer.stop()
+        self.timer.start(16)
+        self.obstacle_spawn_timer.start(2000)
 
     def toggle_pause(self):
         """Переключение состояния паузы."""
