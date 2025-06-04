@@ -6,6 +6,7 @@ from engine.screens.main_menu import MainMenu
 from engine.screens.game_screen import GameScreen
 from engine.screens.pause_menu import PauseMenu
 from engine.screens.settings_menu import SettingsMenu
+from engine.screens.debug_menu import DebugMenuScreen
 
 class GameEngine(QStackedWidget):
     def __init__(self):
@@ -28,6 +29,9 @@ class GameEngine(QStackedWidget):
         self.pause_menu = PauseMenu(self)
         self.addWidget(self.pause_menu)
 
+        self.debug_menu = DebugMenuScreen(self)
+        self.debug_menu.hide()
+
         if self.settings.get("fullscreen", False):
             self.showFullScreen()
         else:
@@ -36,7 +40,6 @@ class GameEngine(QStackedWidget):
         self.setCurrentWidget(self.main_menu)
 
     def load_settings(self):
-        """Загрузка настроек из JSON-файла."""
         default_settings = {"fullscreen": False}
         try:
             with open(self.settings_file, "r") as file:
@@ -46,7 +49,6 @@ class GameEngine(QStackedWidget):
         return default_settings
 
     def save_settings(self):
-        """Сохранение настроек в JSON-файл."""
         try:
             with open(self.settings_file, "w") as file:
                 json.dump(self.settings, file, indent=4)
@@ -54,7 +56,6 @@ class GameEngine(QStackedWidget):
             print(f"Ошибка сохранения настроек: {e}")
 
     def toggle_fullscreen(self):
-        """Переключение полноэкранного режима."""
         if self.isFullScreen():
             self.showNormal()
             self.settings["fullscreen"] = False
@@ -64,5 +65,4 @@ class GameEngine(QStackedWidget):
         self.save_settings()
 
     def exit_game(self):
-        """Выход из игры."""
         self.close()
