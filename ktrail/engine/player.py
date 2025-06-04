@@ -2,8 +2,8 @@ from PyQt5.QtCore import Qt, QRect
 
 class Player:
     def __init__(self, x=960, y=520, size=40):
-        self.x_positions = [640, 960, 1280]  # Три фиксированные позиции по X
-        self.current_x_index = 1  # Начальная позиция (центр)
+        self.x_positions = [640, 960, 1280]
+        self.current_x_index = 1
         self.x = self.x_positions[self.current_x_index]
         self.y = y
         self.size = size
@@ -15,16 +15,15 @@ class Player:
             self.y -= self.speed
         elif key == Qt.Key_S:
             self.y += self.speed
-        elif key == Qt.Key_A:  # Движение влево
-            if self.current_x_index > 0:  # Можно двигаться только если не на левой позиции
+        elif key == Qt.Key_A:
+            if self.current_x_index > 0:
                 self.current_x_index -= 1
                 self.x = self.x_positions[self.current_x_index]
-        elif key == Qt.Key_D:  # Движение вправо
-            if self.current_x_index < len(self.x_positions) - 1:  # Можно двигаться только если не на правой позиции
+        elif key == Qt.Key_D:
+            if self.current_x_index < len(self.x_positions) - 1:
                 self.current_x_index += 1
                 self.x = self.x_positions[self.current_x_index]
 
-        # Ограничение по Y
         self.y = max(0, min(1040, self.y))
 
     def get_rect(self):

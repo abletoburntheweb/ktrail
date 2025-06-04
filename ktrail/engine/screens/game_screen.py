@@ -1,10 +1,8 @@
-# engine/game_screen.py
-
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush
 from engine.player import Player
-from engine.obstacle import Obstacle  # Импортируем класс Obstacle
+from engine.obstacle import Obstacle
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -42,11 +40,10 @@ class GameScreen(QWidget):
 
         self.initialize_tiles()
 
-        # Препятствия
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
-        self.obstacle_spawn_timer.start(2000)  # Генерация нового препятствия каждые 2 секунды
+        self.obstacle_spawn_timer.start(2000)
 
         # Таймер для анимации движения тайлов (60 FPS)
         self.timer = QTimer(self)
@@ -55,7 +52,15 @@ class GameScreen(QWidget):
 
         self.is_game_over = False
 
-        self.reset_game()
+        self.debug_counter = 0
+        self.debug_interval = 60  # Вывод раз в ~1 секунду (60 кадров ≈ 1 секунда)
+
+        self.total_removed_obstacles = 0
+
+        # Трейл игрока
+        self.trail = []
+        self.max_trail_length = 50
+        self.trail_alpha_step = 255 // self.max_trail_length
 
     def init_ui(self):
         """Инициализация интерфейса."""
@@ -70,7 +75,6 @@ class GameScreen(QWidget):
         y = 0
 
         self.tile_positions.append((blue_tile_x, y, 1))  # 1 = индекс синего цвета
-
         self.tile_positions.append((green_tile_x, y, 2))  # 2 = индекс зеленого цвета
 
     def spawn_obstacle(self):
@@ -80,22 +84,37 @@ class GameScreen(QWidget):
             self.obstacles.append(obstacle)
 
     def move_tiles_down(self):
-        """Перемещение тайлов вниз."""
+        """Перемещение тайлов вниз и добавление новых."""
         new_tile_positions = []
         for x, y, color_index in self.tile_positions:
             y += 2
-            if y > self.height():
-                y = -self.tile_size
-            new_tile_positions.append((x, y, color_index))
+            if y <= self.height():
+                new_tile_positions.append((x, y, color_index))
+
+        if len(new_tile_positions) < 2:
+            blue_tile_x = (self.columns // 2 - 2) * self.tile_size
+            green_tile_x = (self.columns // 2 + 2) * self.tile_size
+
+            # Добавляем новый синий тайл
+            new_tile_positions.append((blue_tile_x, -self.tile_size, 1))  # 1 = индекс синего цвета
+            # Добавляем новый зеленый тайл
+            new_tile_positions.append((green_tile_x, -self.tile_size, 2))  # 2 = индекс зеленого цвета
+
         self.tile_positions = new_tile_positions
 
     def paintEvent(self, event):
-        """Отрисовка тайлов, игрока и препятствий."""
+        """Отрисовка тайлов, игрока, препятствий и трейла."""
         painter = QPainter(self)
 
         for x, y, color_index in self.tile_positions:
             color = self.tile_colors[color_index]
             painter.fillRect(x, y, self.tile_size, self.tile_size, color)
+
+        for i, (x, y) in enumerate(self.trail):
+            # Нелинейное затухание (квадратичное)
+            alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
+            color = QColor(0, 0, 0, max(0, alpha))
+            painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
 
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
@@ -124,10 +143,27 @@ class GameScreen(QWidget):
             if pressed:
                 self.player.move(key)
 
+        self.trail.insert(0, (self.player.x, self.player.y))
+        if len(self.trail) > self.max_trail_length:
+            self.trail.pop()
+
+        self.trail = [(x, y + 2) for x, y in self.trail]
+
         for obstacle in self.obstacles:
             obstacle.move()
 
-        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(self.height())]
+        delete_y = 540
+        initial_count = len(self.obstacles)
+        removed_count = 0
+        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(delete_y)]
+        removed_count = initial_count - len(self.obstacles)
+
+        self.total_removed_obstacles += removed_count
+
+        self.debug_counter += 1
+        if self.debug_counter >= self.debug_interval:
+            self.debug_counter = 0
+            print(f"Суммарно удалено препятствий: {self.total_removed_obstacles}, осталось: {len(self.obstacles)}")
 
         self.check_collisions()
 
@@ -164,11 +200,11 @@ class GameScreen(QWidget):
         """Сброс состояния игры."""
         self.player = Player()
         self.obstacles.clear()
+        self.trail.clear()
         self.is_game_over = False
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
-        self.timer.start(16)
-        self.obstacle_spawn_timer.start(2000)
+        self.total_removed_obstacles = 0
 
     def toggle_pause(self):
         """Переключение состояния паузы."""

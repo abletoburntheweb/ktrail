@@ -8,7 +8,6 @@ class SettingsMenu(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.is_fullscreen = False
         self.previous_screen = None
         self.init_ui()
 
@@ -26,7 +25,7 @@ class SettingsMenu(QWidget):
 
         self.fullscreen_toggle = QCheckBox("Полноэкранный режим")
         self.fullscreen_toggle.setFont(QFont("Arial", 18))
-        self.fullscreen_toggle.setChecked(self.is_fullscreen)
+        self.fullscreen_toggle.setChecked(self.parent.settings.get("fullscreen", False))
         self.fullscreen_toggle.stateChanged.connect(self.toggle_fullscreen)
         layout.addWidget(self.fullscreen_toggle)
 
@@ -38,14 +37,9 @@ class SettingsMenu(QWidget):
         self.setLayout(layout)
 
     def toggle_fullscreen(self, state):
-        if state == Qt.Checked:
-            print("Переключение в полноэкранный режим...")
-            self.parent.showFullScreen()
-            self.is_fullscreen = True
-        else:
-            print("Переключение в оконный режим...")
-            self.parent.showNormal()
-            self.is_fullscreen = False
+        """Переключение полноэкранного режима."""
+        if self.parent:
+            self.parent.toggle_fullscreen()
 
     def set_previous_screen(self, screen_name):
         """Устанавливает предыдущий экран."""
@@ -55,7 +49,7 @@ class SettingsMenu(QWidget):
         """Возвращает пользователя на предыдущий экран."""
         if self.previous_screen == "pause_menu":
             print("Возвращение в меню паузы...")
-            if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
+            if self.parent:
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         elif self.previous_screen == "main_menu":
             print("Возвращение в главное меню...")
