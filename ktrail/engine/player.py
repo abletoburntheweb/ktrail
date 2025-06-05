@@ -7,7 +7,7 @@ class Player:
         self.x = self.x_positions[self.current_x_index]
         self.y = y
         self.size = size
-        self.speed = 5
+        self.speed = 10
 
     def move(self, key):
         """Обработка движения игрока."""

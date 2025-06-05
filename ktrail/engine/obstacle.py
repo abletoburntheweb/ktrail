@@ -15,7 +15,6 @@ class Obstacle:
         """Перемещение препятствия вниз."""
         self.y += self.speed
 
-
     def get_rect(self):
         """Возвращает QRect для проверки столкновений."""
         return QRect(self.x, self.y, self.size, self.size)
@@ -49,3 +48,49 @@ class PowerLine:
         for x_position in self.x_positions:
             line_x = x_position + 14  # Центрируем линию относительно позиции
             painter.fillRect(line_x, 0, self.line_width, screen_height, self.color)
+
+
+class TransmissionTower:
+    def __init__(self, screen_height, platform_width=540, platform_height=30, gap=150):
+        """
+        Класс для представления опоры ЛЭП.
+
+        :param screen_height: Высота экрана для расчета начальной позиции.
+        :param platform_width: Ширина платформ (верхней и нижней).
+        :param platform_height: Высота платформ.
+        :param gap: Расстояние между верхней и нижней платформами.
+        """
+        # Начинаем с верхней границы экрана + дополнительное смещение
+        self.y = -platform_height - screen_height  # Спавн выше экрана
+        self.platform_width = platform_width
+        self.platform_height = platform_height
+        self.gap = gap
+        self.screen_height = screen_height
+
+        # Центрируем опору по горизонтали
+        center_x = 960  # Центр экрана
+        self.top_platform = QRect(center_x - platform_width // 2, self.y, platform_width, platform_height)
+        self.bottom_platform = QRect(center_x - platform_width // 2, self.y + gap + platform_height, platform_width,
+                                     platform_height)
+
+        # Линии
+        self.line_positions = [710, 960, 1210]  # Позиции линий
+
+    def move(self, speed):
+        """Перемещение опоры вниз."""
+        self.y += speed
+        self.top_platform.translate(0, speed)
+        self.bottom_platform.translate(0, speed)
+
+    def draw(self, painter):
+        """Отрисовка опоры."""
+        # Цвет платформ
+        platform_color = QColor(255, 165, 0)  # Оранжевый цвет
+
+        # Рисуем верхнюю и нижнюю платформы
+        painter.fillRect(self.top_platform, platform_color)
+        painter.fillRect(self.bottom_platform, platform_color)
+
+    def is_off_screen(self):
+        """Проверяет, вышла ли опора за пределы экрана."""
+        return self.bottom_platform.top() > self.screen_height

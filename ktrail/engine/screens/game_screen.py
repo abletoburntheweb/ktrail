@@ -1,6 +1,6 @@
 from engine.day_night import DayNightSystem
 from engine.player import Player
-from engine.obstacle import Obstacle, PowerLine
+from engine.obstacle import Obstacle, PowerLine, TransmissionTower
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
@@ -47,6 +47,12 @@ class GameScreen(QWidget):
 
         # Линии
         self.power_line = PowerLine(line_width=10, color=QColor(0, 255, 255))
+
+        # Опоры ЛЭП
+        self.towers = []
+        self.tower_spawn_timer = QTimer(self)
+        self.tower_spawn_timer.timeout.connect(self.spawn_tower)
+        self.tower_spawn_timer.start(4000)  # Генерация новой опоры каждые 4 секунды
 
         # Трейл игрока
         self.trail = []
@@ -120,8 +126,13 @@ class GameScreen(QWidget):
             obstacle = Obstacle(self.width(), self.height())
             self.obstacles.append(obstacle)
 
+    def spawn_tower(self):
+        """Генерация новой опоры."""
+        if not self.is_game_over:
+            tower = TransmissionTower(screen_height=self.height())
+            self.towers.append(tower)
+
     def paintEvent(self, event):
-        """Отрисовка тайлов, игрока, препятствий, трейла и линий."""
         painter = QPainter(self)
 
         # 1. Рисуем тайлы с текстурами
@@ -139,22 +150,24 @@ class GameScreen(QWidget):
         # 3. Отрисовка линий
         self.power_line.draw(painter, self.height())
 
-        # 4. Отрисовка трейла
+        # 4. Отрисовка опор
+        for tower in self.towers:
+            tower.draw(painter)
+
+        # 5. Отрисовка трейла
         for i, (x, y) in enumerate(self.trail):
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
             color = QColor(0, 0, 0, max(0, alpha))
             painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
 
-        # 5. Отрисовка игрока
+        # 6. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
-        # 6. Отрисовка препятствий
+        # 7. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
 
-
-
-        # 7. Фонарь при переходе ночи
+        # 8. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
             light_pos = self.mapFromGlobal(self.cursor().pos())
             light_radius = 120
@@ -208,6 +221,13 @@ class GameScreen(QWidget):
         self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
 
+        for tower in self.towers:
+            tower.move(speed=10)
+
+            # Удаление опор, которые вышли за экран
+        initial_count = len(self.towers)
+        self.towers = [tower for tower in self.towers if not tower.is_off_screen()]
+        self.total_removed_obstacles += initial_count - len(self.towers)
         # Проверка коллизий
         self.check_collisions()
 
