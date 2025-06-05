@@ -93,7 +93,7 @@ class GameScreen(QWidget):
         """Перемещение тайлов вниз и добавление новых сверху"""
         new_tile_positions = []
         for x, y, tile_type in self.tile_positions:
-            y += 2
+            y += 10
             if y <= self.height():
                 new_tile_positions.append((x, y, tile_type))
 
@@ -106,7 +106,7 @@ class GameScreen(QWidget):
                 tile_type = "grass"
 
             # Проверяем, есть ли уже тайл наверху
-            top_y = -self.tile_size+1
+            top_y = -self.tile_size+9
             has_top_tile = any(x == tx and ty <= 0 and ty > -self.tile_size for tx, ty, _ in new_tile_positions)
 
             if not has_top_tile:
@@ -136,21 +136,23 @@ class GameScreen(QWidget):
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.rect())
 
-        # 3. Отрисовка трейла
+        # 3. Отрисовка линий
+        self.power_line.draw(painter, self.height())
+
+        # 4. Отрисовка трейла
         for i, (x, y) in enumerate(self.trail):
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
             color = QColor(0, 0, 0, max(0, alpha))
             painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
 
-        # 4. Отрисовка игрока
+        # 5. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
-        # 5. Отрисовка препятствий
+        # 6. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
 
-        # 6. Отрисовка линий
-        self.power_line.draw(painter, self.height())
+
 
         # 7. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
@@ -248,6 +250,8 @@ class GameScreen(QWidget):
 
         # Пересоздаём тайлы
         self.initialize_tiles()
+
+        self.day_night.current_tick = 8200
 
         # Перезапускаем таймеры
         self.timer.start(16)
