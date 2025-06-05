@@ -7,7 +7,7 @@ class DebugMenuScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Debug Menu")
-        self.setFixedSize(400, 400)
+        self.setFixedSize(400, 600)
 
         # Настройки окна
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -26,7 +26,12 @@ class DebugMenuScreen(QWidget):
         self.current_tick_input = self.create_input("Текущий тик", layout, "Текущий тик")
 
         # Скорость времени
-        self.speed_slider = self.create_slider(layout, "Скорость времени", 1, 100, 10)
+        self.speed_slider = self.create_slider(layout, "Скорость времени", 1, 300, 10)
+
+        # Хвостик
+        self.trail_slider = self.create_slider(layout, "Хвост", 1, 100, 25)
+        self.trail_s_slider = self.create_slider(layout, "Условная скорость", 1, 100, 10)
+        self.trail_f_slider = self.create_slider(layout, "Частота", 1, 100, 16)
 
         # tick_interval_ms
         self.interval_input = self.create_input("tick_interval_ms (мс)", layout)
@@ -49,6 +54,9 @@ class DebugMenuScreen(QWidget):
         # Подключаем сигналы
         self.slider.valueChanged.connect(self.change_time_from_slider)
         self.speed_slider.valueChanged.connect(self.change_time_speed_from_slider)
+        self.trail_slider.valueChanged.connect(self.trail)
+        self.trail_s_slider.valueChanged.connect(self.trail_step)
+        self.trail_f_slider.valueChanged.connect(self.frick)
         self.interval_input.textEdited.connect(self.change_tick_interval_manually)
         self.update_ticks_input.textEdited.connect(self.change_ticks_per_update_manually)
         self.current_tick_input.textEdited.connect(self.change_current_tick_manually)
@@ -151,6 +159,25 @@ class DebugMenuScreen(QWidget):
             day_night = self.parent().game_screen.day_night
             day_night.current_tick = self.slider.value()
             self.update_debug_info(day_night)
+
+
+    def trail(self):
+        if self.parent() and hasattr(self.parent(), 'game_screen'):
+            trail = self.parent().game_screen
+            trail.max_trail_length = self.trail_slider.value()
+
+    def trail_step(self):
+        if self.parent() and hasattr(self.parent(), 'game_screen'):
+            trail = self.parent().game_screen
+            trail.speed = self.trail_s_slider.value()
+            print(trail.speed)
+
+    def frick(self):
+        if self.parent() and hasattr(self.parent(), 'game_screen'):
+            trail = self.parent().game_screen
+            f = self.trail_f_slider.value()
+            trail.timer.start(f)
+            print(f)
 
     def change_time_speed_from_slider(self):
         speed_factor = self.speed_slider.value() / 10.0  # От 0.1 до 10x
