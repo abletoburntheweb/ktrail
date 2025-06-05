@@ -6,14 +6,15 @@ from PyQt5.QtGui import QColor
 class Obstacle:
     def __init__(self, screen_width, screen_height, size=40):
         self.size = size
-        self.x_positions = [640, 960, 1280]  # Координаты x для препятствий
+        self.x_positions = [710, 960, 1210]  # Координаты x для препятствий
         self.x = choice(self.x_positions)  # Случайный выбор позиции
         self.y = -self.size
-        self.speed = 5
+        self.speed = 2
 
     def move(self):
         """Перемещение препятствия вниз."""
         self.y += self.speed
+
 
     def get_rect(self):
         """Возвращает QRect для проверки столкновений."""
@@ -35,7 +36,7 @@ class PowerLine:
         :param line_width: Ширина линий.
         :param color: Цвет линий.
         """
-        self.x_positions = [640, 960, 1280]  # Координаты x для линий
+        self.x_positions = [710, 960, 1210]  # Координаты x для линий
         self.line_width = line_width
         self.color = color
 
@@ -46,5 +47,5 @@ class PowerLine:
         :param screen_height: Высота экрана.
         """
         for x_position in self.x_positions:
-            line_x = x_position - (self.line_width // 2)  # Центрируем линию относительно позиции
+            line_x = x_position + 14  # Центрируем линию относительно позиции
             painter.fillRect(line_x, 0, self.line_width, screen_height, self.color)
