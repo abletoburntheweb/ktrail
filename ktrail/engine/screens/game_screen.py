@@ -1,20 +1,18 @@
-from engine.day_night import DayNightSystem
-from engine.player import Player
-from engine.obstacle import Obstacle, PowerLine
-
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
+
+# Импорты других классов
+from engine.day_night import DayNightSystem
+from engine.player import Player
+from engine.obstacle import Obstacle, PowerLine
+from engine.tile_manager import TileManager  # Новый менеджер тайлов
 
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-
-        # Загрузка текстур
-        self.asphalt_texture = QPixmap("assets/textures/asf.png")
-        self.grass_texture = QPixmap("assets/textures/grass.png")
 
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
@@ -28,7 +26,28 @@ class GameScreen(QWidget):
         self.rows = 6
         self.columns = 10
 
-        self.initialize_tiles()
+        # Инициализация TileManager
+        self.tile_manager = TileManager(
+            tile_size=self.tile_size,
+            rows=self.rows,
+            cols=self.columns,
+            screen_width=self.width(),
+            screen_height=self.height()
+        )
+
+        # Добавляем типы тайлов
+        self.tile_manager.add_tile_type(
+            "asphalt",
+            [
+                "assets/textures/asf.png",
+                "assets/textures/dev_w.png",
+                "assets/textures/dev_g.png"
+            ],
+            weights=[5, 3, 2]  # Частота появления текстур
+        )
+        self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
+
+        self.tile_manager.init_tiles()  # Создаём начальные тайлы
 
         # Игрок
         self.player = Player()
@@ -54,7 +73,6 @@ class GameScreen(QWidget):
         self.trail = []
         self.max_trail_length = 25
 
-
         # Таймер игры
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
@@ -62,8 +80,6 @@ class GameScreen(QWidget):
 
         self.is_game_over = False
         self.total_removed_obstacles = 0
-        self.debug_counter = 0
-        self.debug_interval = 60
 
         # Таймер обновления времени
         self.time_timer = QTimer(self)
@@ -74,47 +90,9 @@ class GameScreen(QWidget):
         self.setWindowTitle("Игровой экран")
         self.setFixedSize(1920, 1080)
 
-    def initialize_tiles(self):
-        """Создаёт начальные тайлы по всей ширине"""
-        self.tile_positions = []
-        for row in range(self.rows):
-            for col in range(self.columns):
-                x = col * self.tile_size
-                y = row * self.tile_size-1
-                if col < 4:
-                    tile_type = "asphalt"
-                else:
-                    tile_type = "grass"
-                self.tile_positions.append((x, y, tile_type))
-
     def update_day_night(self):
         self.day_night.update_time()
         self.update()
-
-    def move_tiles_down(self):
-        """Перемещение тайлов вниз и добавление новых сверху"""
-        new_tile_positions = []
-        for x, y, tile_type in self.tile_positions:
-            y += self.speed
-            if y <= self.height():
-                new_tile_positions.append((x, y, tile_type))
-
-        # Проверяем, нужно ли добавить новые тайлы сверху
-        for col in range(self.columns):
-            x = col * self.tile_size
-            if col < 4:
-                tile_type = "asphalt"
-            else:
-                tile_type = "grass"
-
-            # Проверяем, есть ли уже тайл наверху
-            top_y = -self.tile_size+(self.speed-1)
-            has_top_tile = any(x == tx and ty <= 0 and ty > -self.tile_size for tx, ty, _ in new_tile_positions)
-
-            if not has_top_tile:
-                new_tile_positions.append((x, top_y, tile_type))
-
-        self.tile_positions = new_tile_positions
 
     def spawn_obstacle(self):
         """Генерация нового препятствия."""
@@ -123,14 +101,11 @@ class GameScreen(QWidget):
             self.obstacles.append(obstacle)
 
     def paintEvent(self, event):
-        """Отрисовка тайлов, игрока, препятствий, трейла и линий."""
+        """Отрисовка всего игрового экрана"""
         painter = QPainter(self)
 
-        # 1. Рисуем тайлы с текстурами
-        for x, y, tile_type in self.tile_positions:
-            texture = self.asphalt_texture if tile_type == "asphalt" else self.grass_texture
-            scaled = texture.scaled(self.tile_size, self.tile_size)
-            painter.drawPixmap(x, y, scaled)
+        # 1. Рисуем тайлы
+        self.tile_manager.draw_tiles(painter)
 
         # 2. Накладываем градиент дня/ночи
         gradient = self.day_night.get_background_gradient(self.height())
@@ -153,8 +128,6 @@ class GameScreen(QWidget):
         # 6. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
-
-
 
         # 7. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
@@ -213,8 +186,9 @@ class GameScreen(QWidget):
         # Проверка коллизий
         self.check_collisions()
 
-        # Перемещение тайлов
-        self.move_tiles_down()
+        # Обновление позиций тайлов
+        self.tile_manager.update_tiles(self.speed)
+
         self.update()
 
     def check_collisions(self):
@@ -251,7 +225,7 @@ class GameScreen(QWidget):
         self.is_game_over = False
 
         # Пересоздаём тайлы
-        self.initialize_tiles()
+        self.tile_manager.init_tiles()
 
         self.day_night.current_tick = 8200
 
