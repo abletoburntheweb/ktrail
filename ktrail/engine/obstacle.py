@@ -9,7 +9,7 @@ class Obstacle:
         self.x_positions = [710, 960, 1210]  # Координаты x для препятствий
         self.x = choice(self.x_positions)  # Случайный выбор позиции
         self.y = -self.size
-        self.speed = 2
+        self.speed = 10
 
     def move(self):
         """Перемещение препятствия вниз."""
