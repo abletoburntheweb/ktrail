@@ -1,7 +1,10 @@
+# engine/screens/game_screen.py
+
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
 
+from engine.car import Car
 # Импорты других классов
 from engine.day_night import DayNightSystem
 from engine.player import Player
@@ -68,6 +71,11 @@ class GameScreen(QWidget):
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
 
+        self.cars = []
+        self.car_spawn_timer = QTimer(self)
+        self.car_spawn_timer.timeout.connect(self.spawn_car)
+        self.car_spawn_timer.start(5000)
+
         # Линии
         self.power_line = PowerLine(line_width=10, color=QColor(0, 255, 255))
 
@@ -106,6 +114,12 @@ class GameScreen(QWidget):
             obstacle = Obstacle(self.width(), self.height())
             self.obstacles.append(obstacle)
 
+    def spawn_car(self):
+        """Генерация новой машины (двигается снизу вверх по правому ряду)"""
+        if not self.is_game_over:
+            car = Car(self.width(), self.height())
+            self.cars.append(car)
+
     def paintEvent(self, event):
         """Отрисовка всего игрового экрана"""
         painter = QPainter(self)
@@ -135,7 +149,11 @@ class GameScreen(QWidget):
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
 
-        # 7. Фонарь при переходе ночи
+        # 7. Отрисовка машин
+        for car in self.cars:
+            painter.drawPixmap(car.x, car.y, car.texture)
+
+        # 8. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
             light_pos = self.mapFromGlobal(self.cursor().pos())
             light_radius = 120
@@ -189,6 +207,13 @@ class GameScreen(QWidget):
         self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
 
+        # Движение машин
+        for car in self.cars:
+            car.move()
+
+        # Удаление ушедших за экран машин
+        self.cars = [car for car in self.cars if not car.is_off_screen()]
+
         # Проверка коллизий
         self.check_collisions()
 
@@ -227,6 +252,7 @@ class GameScreen(QWidget):
         """Сброс состояния игры и полный рестарт."""
         self.player = Player()
         self.obstacles.clear()
+        self.cars.clear()
         self.trail.clear()
         self.is_game_over = False
 

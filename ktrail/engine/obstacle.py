@@ -1,3 +1,5 @@
+# engine/screens/obstacle.py
+
 from random import choice
 from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QColor
