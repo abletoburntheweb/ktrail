@@ -43,9 +43,8 @@ class MainMenu(QWidget):
         """Начать игру."""
         print("Запуск игры...")
         if self.parent:
+            # Сбрасываем игру и запускаем таймеры
             self.parent.game_screen.reset_game()
-            self.parent.game_screen.timer.start(16)
-            self.parent.game_screen.obstacle_spawn_timer.start(2000)
             self.parent.setCurrentWidget(self.parent.game_screen)
 
     def open_settings(self):

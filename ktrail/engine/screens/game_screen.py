@@ -67,7 +67,6 @@ class GameScreen(QWidget):
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
-        self.obstacle_spawn_timer.start(2000)
 
         # Линии
         self.power_line = PowerLine(line_width=10, color=QColor(0, 255, 255))
@@ -79,15 +78,19 @@ class GameScreen(QWidget):
         # Таймер игры
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
-        self.timer.start(16)
-
-        self.is_game_over = False
-        self.total_removed_obstacles = 0
 
         # Таймер обновления времени
         self.time_timer = QTimer(self)
         self.time_timer.timeout.connect(self.update_day_night)
-        self.time_timer.start(self.day_night.tick_interval_ms)
+
+        # Состояние игры
+        self.is_game_over = False
+        self.total_removed_obstacles = 0
+
+        # ВАЖНО: Таймеры НЕ запускаются автоматически
+        self.timer.stop()
+        self.obstacle_spawn_timer.stop()
+        self.time_timer.stop()
 
     def init_ui(self):
         self.setWindowTitle("Игровой экран")
@@ -232,9 +235,10 @@ class GameScreen(QWidget):
 
         self.day_night.current_tick = 8200
 
-        # Перезапускаем таймеры
+        # Запускаем таймеры
         self.timer.start(16)
         self.obstacle_spawn_timer.start(2000)
+        self.time_timer.start(self.day_night.tick_interval_ms)
 
         self.total_removed_obstacles = 0
 
