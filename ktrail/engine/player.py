@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QRect
 
 class Player:
     def __init__(self, y=520, size=40):
-        self.x_positions = [710, 960, 1210]
+        self.x_positions = [704, 954, 1204]
         self.current_x_index = 1
         self.x = self.x_positions[self.current_x_index]
         self.y = y

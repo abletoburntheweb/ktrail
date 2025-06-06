@@ -1,5 +1,5 @@
 # engine/screens/game_logic.py
-
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QStackedWidget, QApplication
 from PyQt5.QtCore import Qt
 import json
@@ -84,3 +84,17 @@ class GameEngine(QStackedWidget):
 
     def exit_game(self):
         self.close()
+
+
+    def interpolate_color(self, color1, color2, factor):
+        """
+        Интерполяция между двумя цветами.
+        :param color1: Начальный цвет (QColor).
+        :param color2: Конечный цвет (QColor).
+        :param factor: Коэффициент интерполяции (0.0 - color1, 1.0 - color2).
+        :return: Новый QColor.
+        """
+        r = int(color1.red() + (color2.red() - color1.red()) * factor)
+        g = int(color1.green() + (color2.green() - color1.green()) * factor)
+        b = int(color1.blue() + (color2.blue() - color1.blue()) * factor)
+        return QColor(r, g, b)

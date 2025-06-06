@@ -77,11 +77,13 @@ class GameScreen(QWidget):
         self.car_spawn_timer.start(5000)
 
         # Линии
-        self.power_line = PowerLine(line_width=10, color=QColor(0, 255, 255))
+        self.power_line = PowerLine(line_width=12, color="#89878c")
 
         # Трейл игрока
         self.trail = []
         self.max_trail_length = 25
+        self.trail_width = 10
+        self.trail_color = QColor("#4aa0fc")  # Цвет трейла (HEX)
 
         # Таймер игры
         self.timer = QTimer(self)
@@ -120,6 +122,7 @@ class GameScreen(QWidget):
             car = Car(self.width(), self.height())
             self.cars.append(car)
 
+
     def paintEvent(self, event):
         """Отрисовка всего игрового экрана"""
         painter = QPainter(self)
@@ -137,10 +140,16 @@ class GameScreen(QWidget):
         self.power_line.draw(painter, self.height())
 
         # 4. Отрисовка трейла
+        start_color = QColor("#4aa0fc")  # Голубой
+        end_color = QColor("#FFFFFF")   # Белый
+
         for i, (x, y) in enumerate(self.trail):
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
-            color = QColor(0, 0, 0, max(0, alpha))
-            painter.fillRect(x, y, self.player.size, self.player.size, QBrush(color))
+            factor = i / self.max_trail_length  # Коэффициент интерполяции
+            interpolated_color = self.parent.interpolate_color(start_color, end_color, factor)
+            interpolated_color.setAlpha(max(0, alpha))  # Устанавливаем прозрачность
+
+            painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
 
         # 5. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
@@ -193,7 +202,7 @@ class GameScreen(QWidget):
                 self.player.move(key)
 
         # Обновление трейла
-        self.trail.insert(0, (self.player.x, self.player.y))
+        self.trail.insert(0, (self.player.x + 15, self.player.y))
         if len(self.trail) > self.max_trail_length:
             self.trail.pop()
         self.trail = [(x, y + self.speed) for x, y in self.trail]
