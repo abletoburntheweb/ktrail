@@ -1,12 +1,6 @@
-# engine/game_logic.py
-
+from PyQt5.QtWidgets import QStackedWidget, QApplication
+from PyQt5.QtCore import Qt
 import json
-from PyQt5.QtWidgets import QStackedWidget
-from engine.screens.main_menu import MainMenu
-from engine.screens.game_screen import GameScreen
-from engine.screens.pause_menu import PauseMenu
-from engine.screens.settings_menu import SettingsMenu
-from engine.screens.debug_menu import DebugMenuScreen
 
 class GameEngine(QStackedWidget):
     def __init__(self):
@@ -17,6 +11,12 @@ class GameEngine(QStackedWidget):
 
     def init_screens(self):
         """Инициализация экранов."""
+        from engine.screens.main_menu import MainMenu
+        from engine.screens.game_screen import GameScreen
+        from engine.screens.pause_menu import PauseMenu
+        from engine.screens.settings_menu import SettingsMenu
+        from engine.screens.debug_menu import DebugMenuScreen
+
         self.main_menu = MainMenu(self)
         self.addWidget(self.main_menu)
 
@@ -33,9 +33,9 @@ class GameEngine(QStackedWidget):
         self.debug_menu.hide()
 
         if self.settings.get("fullscreen", False):
-            self.showFullScreen()
+            self.set_fullscreen(True)
         else:
-            self.showNormal()
+            self.set_fullscreen(False)
 
         self.setCurrentWidget(self.main_menu)
 
@@ -56,13 +56,39 @@ class GameEngine(QStackedWidget):
             print(f"Ошибка сохранения настроек: {e}")
 
     def toggle_fullscreen(self):
+        """Переключение между полноэкранным и оконным режимом."""
         if self.isFullScreen():
-            self.showNormal()
-            self.settings["fullscreen"] = False
+            self.set_fullscreen(False)
         else:
+            self.set_fullscreen(True)
+
+    def set_fullscreen(self, fullscreen):
+        """Установка полноэкранного режима."""
+        if fullscreen:
+            self.setWindowFlags(Qt.FramelessWindowHint)
             self.showFullScreen()
             self.settings["fullscreen"] = True
+        else:
+            self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
+            self.showNormal()
+            self.settings["fullscreen"] = False
         self.save_settings()
 
-    def exit_game(self):
-        self.close()
+    def keyPressEvent(self, event):
+        """Обработка нажатия клавиш."""
+        if event.key() == Qt.Key_Escape:
+            if self.isFullScreen():
+                self.toggle_fullscreen()
+            else:
+                self.toggle_pause()
+        elif event.modifiers() == Qt.AltModifier and event.key() == Qt.Key_Enter:
+            self.toggle_fullscreen()
+        elif event.modifiers() == Qt.AltModifier and event.key() == Qt.Key_Tab:
+            self.showMinimized()
+        else:
+            super().keyPressEvent(event)
+
+    def toggle_pause(self):
+        """Пауза игры."""
+        if self.currentWidget() == self.game_screen:
+            self.game_screen.toggle_pause()
