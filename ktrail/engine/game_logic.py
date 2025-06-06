@@ -76,21 +76,11 @@ class GameEngine(QStackedWidget):
             self.settings["fullscreen"] = False
         self.save_settings()
 
-    def keyPressEvent(self, event):
-        """Обработка нажатия клавиш."""
-        if event.key() == Qt.Key_Escape:
-            if self.isFullScreen():
-                self.toggle_fullscreen()
-            else:
-                self.toggle_pause()
-        elif event.modifiers() == Qt.AltModifier and event.key() == Qt.Key_Enter:
-            self.toggle_fullscreen()
-        elif event.modifiers() == Qt.AltModifier and event.key() == Qt.Key_Tab:
-            self.showMinimized()
-        else:
-            super().keyPressEvent(event)
 
     def toggle_pause(self):
         """Пауза игры."""
         if self.currentWidget() == self.game_screen:
             self.game_screen.toggle_pause()
+
+    def exit_game(self):
+        self.close()
