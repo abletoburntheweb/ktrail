@@ -14,6 +14,7 @@ class GameEngine(QStackedWidget):
     def init_screens(self):
         """Инициализация экранов."""
         from engine.screens.main_menu import MainMenu
+        from engine.screens.distance_selection import DistanceSelection
         from engine.screens.game_screen import GameScreen
         from engine.screens.pause_menu import PauseMenu
         from engine.screens.settings_menu import SettingsMenu
@@ -21,6 +22,9 @@ class GameEngine(QStackedWidget):
 
         self.main_menu = MainMenu(self)
         self.addWidget(self.main_menu)
+
+        self.distance_selection = DistanceSelection(self)
+        self.addWidget(self.distance_selection)
 
         self.game_screen = GameScreen(self)
         self.addWidget(self.game_screen)
