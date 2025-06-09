@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget,QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient
 
 from engine.player_duo import PlayerDuo
-from engine.obstacle_duo import ObstacleDuo, PowerLineDuo
+from engine.obstacle_duo import ObstacleDuo
 from engine.day_night import DayNightSystem
 from engine.tile_manager import TileManager
 
@@ -19,7 +19,6 @@ class GameScreenDuo(QWidget):
         self.distance_traveled = 0
         self.meters_per_frame = 0.1
         self.speed = 10
-
         self.init_ui()
 
         # Тайлы
@@ -64,8 +63,6 @@ class GameScreenDuo(QWidget):
             Qt.Key_Left: False,
             Qt.Key_Right: False,
         }
-
-        self.power_line_duo = PowerLineDuo(line_width=12, color="#89878c")
 
         # Трейлы
         self.trail1 = []
@@ -124,9 +121,6 @@ class GameScreenDuo(QWidget):
         painter.setBrush(gradient)
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.rect())
-
-        # Рисуем линии движения
-        self.power_line_duo.draw(painter, self.height())
 
         # Рисуем трейлы
         self.draw_trail(painter, self.trail1, self.trail_color1)

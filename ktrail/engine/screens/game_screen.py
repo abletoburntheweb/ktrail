@@ -231,10 +231,19 @@ class GameScreen(QWidget):
             step = delta / self.trail_transition_speed
             self.current_trail_x += step
 
-        # Обновление трейла с использованием плавной координаты X
-        self.trail.insert(0, (int(self.current_trail_x), self.player.y))
+        # Добавление нескольких точек в трейл в зависимости от скорости
+        num_points = max(1, int(current_speed / 5))  # Количество точек зависит от скорости
+        for i in range(num_points):
+            # Интерполяция координаты X для каждой точки
+            factor = i / num_points  # Коэффициент интерполяции
+            interpolated_x = int(self.current_trail_x + (self.target_trail_x - self.current_trail_x) * factor)
+            # Добавляем новую точку с учетом смещения по Y
+            y_offset = i * (self.player.speed // num_points)  # Смещение по Y для каждой точки
+            self.trail.insert(0, (interpolated_x, self.player.y - y_offset))
+
+        # Ограничение длины трейла
         if len(self.trail) > self.max_trail_length:
-            self.trail.pop()
+            self.trail = self.trail[:self.max_trail_length]
 
         # Сдвигаем все точки трейла вниз
         self.trail = [(x, y + self.player.speed) for x, y in self.trail]

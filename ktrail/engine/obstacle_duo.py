@@ -45,25 +45,3 @@ class ObstacleDuo:
         if player2_rect.intersects(self.get_rect()):
             return "player2"
         return None
-
-class PowerLineDuo:
-    def __init__(self, line_width=12, color="#89878c"):
-        """
-        Класс для отрисовки линий для обоих игроков.
-        :param line_width: Ширина линий.
-        :param color: Цвет линий (HEX-строка).
-        """
-        # Положения для всех 6 полос (3 слева, 3 справа)
-        self.x_positions = [600, 700, 800, 1100, 1200, 1300]
-        self.line_width = line_width
-        self.color = QColor(color)
-
-    def draw(self, painter, screen_height):
-        """
-        Отрисовка линий на экране.
-        :param painter: QPainter для отрисовки.
-        :param screen_height: Высота экрана.
-        """
-        for x_position in self.x_positions:
-            line_x = x_position + 14  # Центрируем линию относительно позиции
-            painter.fillRect(line_x, 0, self.line_width, screen_height, self.color)
