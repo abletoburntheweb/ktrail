@@ -8,7 +8,7 @@ from engine.car import Car
 # Импорты других классов
 from engine.day_night import DayNightSystem
 from engine.player import Player
-from engine.obstacle import Obstacle, PowerLine
+from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower
 from engine.tile_manager import TileManager  # Новый менеджер тайлов
 
 
@@ -62,6 +62,13 @@ class GameScreen(QWidget):
         # Игрок
         self.player = Player()
 
+        # Опоры ЛЭП
+        self.transmission_towers = []
+
+        # Таймер для спавна опор ЛЭП
+        self.tower_spawn_timer = QTimer(self)
+        self.tower_spawn_timer.timeout.connect(self.spawn_transmission_tower)
+        self.tower_spawn_timer.start(8000)  # Спавн каждые 8 секунд
 
         # Препятствия
         self.obstacles = []
@@ -73,8 +80,16 @@ class GameScreen(QWidget):
         self.car_spawn_timer.timeout.connect(self.spawn_car)
         self.car_spawn_timer.start(5000)
 
+        self.exposed_wires = []
+
+        # Таймер для спавна оголенных проводов
+        self.exposed_wire_spawn_timer = QTimer(self)
+        self.exposed_wire_spawn_timer.timeout.connect(self.spawn_exposed_wire)
+        self.exposed_wire_spawn_timer.start(3000)  # Спавн каждые 3 секунды
+
         # Линии
         self.power_line = PowerLine(line_width=12, color="#89878c")
+
 
         # Трейл игрока
         self.trail = []  # Трейл игрока
@@ -110,11 +125,22 @@ class GameScreen(QWidget):
         self.day_night.update_time()
         self.update()
 
+    def spawn_transmission_tower(self):
+        """Генерация новой опоры ЛЭП."""
+        if not self.is_game_over:
+            tower = TransmissionTower(screen_height=self.height())
+            self.transmission_towers.append(tower)
     def spawn_obstacle(self):
         """Генерация нового препятствия."""
         if not self.is_game_over:
             obstacle = Obstacle(self.width(), self.height())
             self.obstacles.append(obstacle)
+
+    def spawn_exposed_wire(self):
+        """Генерация нового оголенного провода."""
+        if not self.is_game_over:
+            exposed_wire = ExposedWire(self.width(), self.height())
+            self.exposed_wires.append(exposed_wire)
 
     def spawn_car(self):
         """Генерация новой машины (двигается снизу вверх по правому ряду)"""
@@ -158,11 +184,19 @@ class GameScreen(QWidget):
         # 6. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
+
         # 7. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
+        # 8. Отрисовка опор ЛЭП
+        for tower in self.transmission_towers:
+            tower.draw(painter)
 
-        # 8. Фонарь при переходе ночи
+        # 9. Отрисовка оголенного провода
+        for exposed_wire in self.exposed_wires:
+            painter.fillRect(exposed_wire.get_rect(), QBrush(exposed_wire.color))
+
+        # 10. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
             light_pos = self.mapFromGlobal(self.cursor().pos())
             light_radius = 120
@@ -252,10 +286,28 @@ class GameScreen(QWidget):
         for obstacle in self.obstacles:
             obstacle.move()
 
+        # Движение опор ЛЭП
+        for tower in self.transmission_towers:
+            tower.move(self.player.speed)
+
+        # Удаление ушедших за экран опор ЛЭП
+        initial_count = len(self.transmission_towers)
+        self.transmission_towers = [tower for tower in self.transmission_towers if not tower.is_off_screen()]
+        self.total_removed_obstacles += initial_count - len(self.transmission_towers)
+
         # Удаление ушедших за экран
         initial_count = len(self.obstacles)
         self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
+
+        for exposed_wire in self.exposed_wires:
+            exposed_wire.move()
+
+            # Удаление ушедших за экран оголенных проводов
+        initial_count = len(self.exposed_wires)
+        self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(540)]
+        self.total_removed_obstacles += initial_count - len(self.exposed_wires)
+
 
         # Движение машин
         for car in self.cars:
@@ -274,8 +326,16 @@ class GameScreen(QWidget):
 
     def check_collisions(self):
         player_rect = self.player.get_rect()
+
+        # Проверка коллизий с обычными препятствиями
         for obstacle in self.obstacles:
             if player_rect.intersects(obstacle.get_rect()):
+                self.show_game_over()
+                return
+
+        # Проверка коллизий с оголенными проводами
+        for exposed_wire in self.exposed_wires:
+            if player_rect.intersects(exposed_wire.get_rect()):
                 self.show_game_over()
                 return
 
@@ -318,13 +378,13 @@ class GameScreen(QWidget):
         self.obstacles.clear()
         self.cars.clear()
         self.trail.clear()
+        self.exposed_wires.clear()  # Очищаем список оголенных проводов
+        self.transmission_towers.clear()  # Очищаем список опор ЛЭП
         self.is_game_over = False
-
         self.distance_traveled = 0
 
         # Пересоздаём тайлы
         self.tile_manager.init_tiles()
-
         self.day_night.current_tick = 8200
 
         # Запускаем таймеры
@@ -332,6 +392,7 @@ class GameScreen(QWidget):
         self.obstacle_spawn_timer.start(2000)
         self.time_timer.start(self.day_night.tick_interval_ms)
 
+        # Сбрасываем счетчик удаленных препятствий
         self.total_removed_obstacles = 0
 
     def toggle_pause(self):

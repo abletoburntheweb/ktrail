@@ -95,3 +95,46 @@ class TransmissionTower:
     def is_off_screen(self):
         """Проверяет, вышла ли опора за пределы экрана."""
         return self.bottom_platform.top() > self.screen_height
+
+
+class ExposedWire:
+    def __init__(self, screen_width, screen_height, min_height=200, max_height=1000):
+        """
+        Класс для представления вертикального оголенного провода.
+        :param screen_width: Ширина экрана.
+        :param screen_height: Высота экрана.
+        :param min_height: Минимальная высота провода.
+        :param max_height: Максимальная высота провода.
+        """
+        self.x_positions = [718, 968, 1218]  # Координаты x для линий (с учетом смещения +14)
+        self.line_width = 12  # Ширина провода
+        self.color = QColor("#f80000")  # Цвет провода (красный)
+
+        # Выбираем случайную линию
+        self.line_index = choice(range(len(self.x_positions)))
+        self.x = self.x_positions[self.line_index]
+
+        # Случайная высота провода
+        self.height = choice(range(min_height, max_height + 1))
+
+        # Начальная позиция y (выше экрана)
+        self.y = -self.height
+
+        # Скорость движения
+        self.speed = 10
+
+    def move(self):
+        """Перемещение провода вниз."""
+        self.y += self.speed
+
+    def get_rect(self):
+        """Возвращает QRect для проверки столкновений."""
+        return QRect(self.x, self.y, self.line_width, self.height)
+
+    def is_off_screen(self, delete_y):
+        """
+        Проверяет, достиг ли провод заданной координаты y.
+        :param delete_y: Координата y, на которой провод должен быть удален.
+        :return: True, если провод достиг или пересек delete_y.
+        """
+        return self.y >= delete_y
