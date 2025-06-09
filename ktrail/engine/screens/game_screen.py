@@ -19,9 +19,13 @@ class GameScreen(QWidget):
 
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
+
         self.target_distance = 0  # Целевая дистанция
         self.distance_traveled = 0  # Пройденная дистанция
         self.meters_per_frame = 0.1  # Скорость движения в метрах за кадр
+
+        self.speed = 10
+
         self.init_ui()
 
         # Параметры для тайлов
@@ -48,7 +52,6 @@ class GameScreen(QWidget):
             ],
             weights=[5, 3, 2]  # Частота появления текстур
         )
-
         self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
         self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
         self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
@@ -59,10 +62,12 @@ class GameScreen(QWidget):
         # Игрок
         self.player = Player()
 
+
         # Препятствия
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
+
         self.cars = []
         self.car_spawn_timer = QTimer(self)
         self.car_spawn_timer.timeout.connect(self.spawn_car)
@@ -208,7 +213,7 @@ class GameScreen(QWidget):
         if self.distance_traveled >= self.target_distance:
             self.show_victory()
             return
-        
+
         # Обновление трейла
         self.trail.insert(0, (self.player.x + 15, self.player.y))
         if len(self.trail) > self.max_trail_length:
