@@ -16,7 +16,6 @@ class GameEngine(QStackedWidget):
         from engine.screens.main_menu import MainMenu
         from engine.screens.distance_selection import DistanceSelection
         from engine.screens.game_screen import GameScreen
-        from engine.screens.game_screen_duo import GameScreenDuo
         from engine.screens.pause_menu import PauseMenu
         from engine.screens.settings_menu import SettingsMenu
         from engine.screens.debug_menu import DebugMenuScreen
@@ -29,9 +28,6 @@ class GameEngine(QStackedWidget):
 
         self.game_screen = GameScreen(self)
         self.addWidget(self.game_screen)
-
-        self.game_screen_duo = GameScreenDuo(self)
-        self.addWidget(self.game_screen_duo)
 
         self.settings_menu = SettingsMenu(self)
         self.addWidget(self.settings_menu)

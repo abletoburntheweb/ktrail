@@ -19,13 +19,9 @@ class GameScreen(QWidget):
 
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
-
         self.target_distance = 0  # Целевая дистанция
         self.distance_traveled = 0  # Пройденная дистанция
         self.meters_per_frame = 0.1  # Скорость движения в метрах за кадр
-
-        self.speed = 10
-
         self.init_ui()
 
         # Параметры для тайлов
@@ -52,6 +48,7 @@ class GameScreen(QWidget):
             ],
             weights=[5, 3, 2]  # Частота появления текстур
         )
+
         self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
         self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
         self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
@@ -62,19 +59,10 @@ class GameScreen(QWidget):
         # Игрок
         self.player = Player()
 
-        # Клавиши
-        self.key_states = {
-            Qt.Key_W: False,
-            Qt.Key_S: False,
-            Qt.Key_A: False,
-            Qt.Key_D: False
-        }
-
         # Препятствия
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
-
         self.cars = []
         self.car_spawn_timer = QTimer(self)
         self.car_spawn_timer.timeout.connect(self.spawn_car)
@@ -182,7 +170,12 @@ class GameScreen(QWidget):
             text = f"Пройдено: {int(self.distance_traveled)} м / {self.target_distance} м"
             painter.drawText(1700, 50, text)
 
+        painter.setPen(QColor(255, 255, 255))
+        speed_text = f"Скорость: {self.player.get_current_speed()} м/с"
+        painter.drawText(10, 30, speed_text)
+
     def keyPressEvent(self, event):
+        """Обработка нажатия клавиш."""
         if event.key() == Qt.Key_Escape:
             self.toggle_pause()
         elif event.text() == '~':
@@ -194,12 +187,10 @@ class GameScreen(QWidget):
                     self.parent.debug_menu.show()
                     self.parent.debug_menu.raise_()
                     self.parent.debug_menu.setFocus()
-        elif event.key() in self.key_states:
-            self.key_states[event.key()] = True
-
-    def keyReleaseEvent(self, event):
-        if event.key() in self.key_states:
-            self.key_states[event.key()] = False
+        elif event.key() in [Qt.Key_A, Qt.Key_D]:  # Разрешаем только A и D
+            self.player.move(event.key())
+        elif event.key() in [Qt.Key_W, Qt.Key_S]:  # Изменение скорости
+            self.player.change_speed(event.key())
 
     def set_target_distance(self, distance):
         self.target_distance = distance
@@ -210,25 +201,19 @@ class GameScreen(QWidget):
         self.time_timer.start(self.day_night.tick_interval_ms)
 
     def update_game(self):
+        """Обновление игрового процесса."""
         if self.is_game_over:
             return
-
         self.distance_traveled += self.meters_per_frame
-
         if self.distance_traveled >= self.target_distance:
             self.show_victory()
             return
-
-        # Движение игрока
-        for key, pressed in self.key_states.items():
-            if pressed:
-                self.player.move(key)
-
+        
         # Обновление трейла
         self.trail.insert(0, (self.player.x + 15, self.player.y))
         if len(self.trail) > self.max_trail_length:
             self.trail.pop()
-        self.trail = [(x, y + self.speed) for x, y in self.trail]
+        self.trail = [(x, y + self.player.speed) for x, y in self.trail]
 
         # Движение препятствий
         for obstacle in self.obstacles:
@@ -250,8 +235,7 @@ class GameScreen(QWidget):
         self.check_collisions()
 
         # Обновление позиций тайлов
-        self.tile_manager.update_tiles(self.speed)
-
+        self.tile_manager.update_tiles(self.player.speed)
         self.update()
 
     def check_collisions(self):

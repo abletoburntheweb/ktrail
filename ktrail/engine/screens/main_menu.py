@@ -27,11 +27,6 @@ class MainMenu(QWidget):
         start_button.clicked.connect(self.start_game)
         layout.addWidget(start_button)
 
-        start_button = QPushButton("Играть вдвоем")
-        start_button.setFont(QFont("Arial", 18))
-        start_button.clicked.connect(self.start_duo)
-        layout.addWidget(start_button)
-
         settings_button = QPushButton("Настройки")
         settings_button.setFont(QFont("Arial", 18))
         settings_button.clicked.connect(self.open_settings)
@@ -45,15 +40,11 @@ class MainMenu(QWidget):
         self.setLayout(layout)
 
     def start_game(self):
+        """Переход к выбору дистанции."""
         print("Переход к выбору дистанции...")
         if self.parent:
             self.parent.setCurrentWidget(self.parent.distance_selection)
 
-    def start_duo(self):
-        print("Переход кдуо режиму...")
-        if self.parent:
-            self.parent.game_screen_duo.reset_game()
-            self.parent.setCurrentWidget(self.parent.game_screen_duo)
     def open_settings(self):
         """Настройки"""
         print("Открытие настроек...")
