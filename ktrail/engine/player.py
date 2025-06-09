@@ -1,15 +1,17 @@
-from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtCore import Qt, QRect, QTimer
+
 
 class Player:
     def __init__(self, y=520, size=40):
-        self.x_positions = [704, 954, 1204]  # Фиксированные позиции полос
-        self.current_x_index = 1  # Начальная полоса (центральная)
-        self.x = self.x_positions[self.current_x_index]  # Текущая позиция по X
-        self.y = y  # Фиксированная позиция по Y
-        self.size = size  # Размер игрока
-        self.speed_levels = [10, 15, 20, 25, 30]  # Доступные скорости
-        self.current_speed_index = 0  # Индекс текущей скорости (по умолчанию первая)
-        self.speed = self.speed_levels[self.current_speed_index]  # Текущая скорость
+        self.x_positions = [704, 954, 1204]
+        self.current_x_index = 1
+        self.x = self.x_positions[self.current_x_index]
+        self.y = y
+        self.size = size
+        self.speed_levels = [10, 15, 20, 25, 30]
+        self.current_speed_index = 0
+        self.speed = self.speed_levels[self.current_speed_index]
+        self.can_change_speed = True  # Флаг для блокировки изменения скорости
 
     def move(self, key):
         """Обработка движения игрока."""
@@ -24,6 +26,9 @@ class Player:
 
     def change_speed(self, key):
         """Изменение скорости игрока."""
+        if not self.can_change_speed:
+            return
+
         if key == Qt.Key_W:  # Увеличение скорости
             if self.current_speed_index < len(self.speed_levels) - 1:
                 self.current_speed_index += 1
@@ -33,6 +38,13 @@ class Player:
 
         # Обновляем текущую скорость
         self.speed = self.speed_levels[self.current_speed_index]
+
+        self.can_change_speed = False  # Блокируем изменение скорости
+        QTimer.singleShot(200, self.enable_speed_change)  # Разблокируем через 200 мс
+
+    def enable_speed_change(self):
+        """Разблокировка изменения скорости."""
+        self.can_change_speed = True
 
     def get_rect(self):
         """Возвращает прямоугольник для коллизий."""

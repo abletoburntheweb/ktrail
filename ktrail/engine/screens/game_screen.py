@@ -22,7 +22,7 @@ class GameScreen(QWidget):
 
         self.target_distance = 0  # Целевая дистанция
         self.distance_traveled = 0  # Пройденная дистанция
-        self.meters_per_frame = 0.1  # Скорость движения в метрах за кадр
+        self.speed_to_meters_coefficient = 0.01
 
         self.speed = 10
 
@@ -77,10 +77,13 @@ class GameScreen(QWidget):
         self.power_line = PowerLine(line_width=12, color="#89878c")
 
         # Трейл игрока
-        self.trail = []
+        self.trail = []  # Трейл игрока
         self.max_trail_length = 25
         self.trail_width = 10
         self.trail_color = QColor("#4aa0fc")  # Цвет трейла (HEX)
+        self.target_trail_x = self.player.x + 15  # Целевая координата X для трейла
+        self.current_trail_x = self.player.x + 15  # Текущая координата X для трейла
+        self.trail_transition_speed = 5  # Скорость перехода трейла
 
         # Таймер игры
         self.timer = QTimer(self)
@@ -194,6 +197,8 @@ class GameScreen(QWidget):
                     self.parent.debug_menu.setFocus()
         elif event.key() in [Qt.Key_A, Qt.Key_D]:  # Разрешаем только A и D
             self.player.move(event.key())
+            # Обновляем целевую координату X для трейла
+            self.target_trail_x = self.player.x + 15
         elif event.key() in [Qt.Key_W, Qt.Key_S]:  # Изменение скорости
             self.player.change_speed(event.key())
 
@@ -209,15 +214,29 @@ class GameScreen(QWidget):
         """Обновление игрового процесса."""
         if self.is_game_over:
             return
-        self.distance_traveled += self.meters_per_frame
+
+        # Динамический расчет пройденного расстояния
+        current_speed = self.player.get_current_speed()  # Текущая скорость игрока
+        meters_this_frame = current_speed * self.speed_to_meters_coefficient
+        self.distance_traveled += meters_this_frame
+
+        # Проверка достижения целевой дистанции
         if self.distance_traveled >= self.target_distance:
             self.show_victory()
             return
 
-        # Обновление трейла
-        self.trail.insert(0, (self.player.x + 15, self.player.y))
+        # Плавное обновление координаты X трейла
+        if self.current_trail_x != self.target_trail_x:
+            delta = self.target_trail_x - self.current_trail_x
+            step = delta / self.trail_transition_speed
+            self.current_trail_x += step
+
+        # Обновление трейла с использованием плавной координаты X
+        self.trail.insert(0, (int(self.current_trail_x), self.player.y))
         if len(self.trail) > self.max_trail_length:
             self.trail.pop()
+
+        # Сдвигаем все точки трейла вниз
         self.trail = [(x, y + self.player.speed) for x, y in self.trail]
 
         # Движение препятствий
@@ -241,6 +260,7 @@ class GameScreen(QWidget):
 
         # Обновление позиций тайлов
         self.tile_manager.update_tiles(self.player.speed)
+
         self.update()
 
     def check_collisions(self):
