@@ -1,8 +1,13 @@
 # engine/screens/game_logic.py
 from PyQt5.QtGui import QColor
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QStackedWidget, QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QUrl
 import json
+
+from engine.screens.game_screen import GameScreen
+from engine.screens.main_menu import MainMenu
+
 
 class GameEngine(QStackedWidget):
     def __init__(self):
@@ -10,6 +15,24 @@ class GameEngine(QStackedWidget):
         self.settings_file = "config/settings.json"
         self.settings = self.load_settings()
         self.init_screens()
+
+        # Инициализация медиа-плеера
+        self.media_player = QMediaPlayer()
+        self.current_music = None
+
+        # Загрузка путей к музыке
+        self.menu_music_path = "assets/audio/menu_music.mp3"
+        self.game_music_path = "assets/audio/game_music.mp3"
+
+        # Установка начальной громкости
+        initial_volume = self.settings.get("music_volume", 50)
+        self.media_player.setVolume(initial_volume)
+
+        # Подключение сигналов
+        self.currentChanged.connect(self.on_screen_changed)
+
+        # Воспроизведение музыки главного меню при запуске
+        self.play_music(self.menu_music_path)
 
     def init_screens(self):
         """Инициализация экранов."""
@@ -50,10 +73,12 @@ class GameEngine(QStackedWidget):
         self.setCurrentWidget(self.main_menu)
 
     def load_settings(self):
-        default_settings = {"fullscreen": False}
+        default_settings = {"fullscreen": False, "music_volume": 50}
         try:
             with open(self.settings_file, "r") as file:
-                return json.load(file)
+                settings = json.load(file)
+                settings.setdefault("music_volume", 50)
+                return settings
         except (json.JSONDecodeError, FileNotFoundError):
             print("Ошибка загрузки настроек. Используются настройки по умолчанию.")
         return default_settings
@@ -64,6 +89,79 @@ class GameEngine(QStackedWidget):
                 json.dump(self.settings, file, indent=4)
         except Exception as e:
             print(f"Ошибка сохранения настроек: {e}")
+
+    def play_music(self, music_path, loop=True):
+        try:
+            print(f"Попытка воспроизвести музыку: {music_path}")
+            if self.current_music == music_path and self.media_player.state() == QMediaPlayer.PlayingState:
+                print("Музыка уже играет. Ничего не делаем.")
+                return
+
+            self.media_player.stop()
+
+            try:
+                print("Отключение предыдущих сигналов...")
+                self.media_player.mediaStatusChanged.disconnect()
+            except TypeError:
+                print("Нет предыдущих сигналов для отключения.")
+                pass
+
+            self.current_music = music_path
+            media_content = QMediaContent(QUrl.fromLocalFile(music_path))
+            self.media_player.setMedia(media_content)
+
+            if loop:
+                print("Подключение сигнала циклического воспроизведения...")
+                self.media_player.mediaStatusChanged.connect(self.loop_music)
+
+            # Устанавливаем громкость из настроек
+            self.media_player.setVolume(self.settings.get("music_volume", 50))
+
+            # Всегда переходим в начало трека
+            self.media_player.setPosition(0)
+            print("Запуск воспроизведения...")
+            self.media_player.play()
+
+        except Exception as e:
+            print(f"Ошибка воспроизведения музыки: {e}")
+
+    def loop_music(self, status):
+        # Когда трек заканчивается, начинаем его снова
+        if status == QMediaPlayer.EndOfMedia:
+            self.media_player.setPosition(0)
+            self.media_player.play()
+
+    def stop_music(self):
+        try:
+            self.media_player.stop()
+            try:
+                self.media_player.mediaStatusChanged.disconnect()
+            except TypeError:
+                pass  # Нет существующих соединений
+            self.current_music = None
+        except Exception as e:
+            print(f"Ошибка остановки музыки: {e}")
+
+    def on_screen_changed(self, index):
+        current_widget = self.widget(index)
+
+        if isinstance(current_widget, MainMenu):
+            # Проверяем, играет ли уже музыка главного меню
+            if self.current_music != self.menu_music_path:
+                print("Переключение на музыку главного меню...")
+                self.stop_music()
+                self.play_music(self.menu_music_path)
+            else:
+                print("Музыка главного меню уже играет.")
+
+        elif isinstance(current_widget, GameScreen):
+            # Проверяем, играет ли уже игровая музыка
+            if self.current_music != self.game_music_path:
+                print("Переключение на игровую музыку...")
+                self.stop_music()
+                self.play_music(self.game_music_path)
+            else:
+                print("Игровая музыка уже играет.")
 
     def toggle_fullscreen(self):
         """Переключение между полноэкранным и оконным режимом."""
@@ -91,6 +189,7 @@ class GameEngine(QStackedWidget):
             self.game_screen.toggle_pause()
 
     def exit_game(self):
+        self.media_player.stop()
         self.close()
 
 

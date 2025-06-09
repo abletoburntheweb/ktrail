@@ -372,20 +372,25 @@ class GameScreen(QWidget):
         self.is_game_over = True
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
+
         msg = QMessageBox()
         msg.setWindowTitle("Победа!")
         msg.setText(f"Вы проехали {int(self.target_distance)} метров!")
         msg.setStandardButtons(QMessageBox.Ok)
         choice = msg.exec_()
+
         if choice == QMessageBox.Ok:
             self.target_distance = 0
             if self.parent:
+                self.parent.stop_music()  # Безопасная остановка
+                self.parent.play_music(self.parent.menu_music_path)  # Безопасный запуск
                 self.parent.setCurrentWidget(self.parent.main_menu)
 
     def show_game_over(self):
         self.is_game_over = True
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
+        self.parent.stop_music()  # Останавливаем музыку при проигрыше
 
         msg = QMessageBox()
         msg.setWindowTitle("Конец игры")
@@ -423,6 +428,10 @@ class GameScreen(QWidget):
 
         # Сбрасываем счетчик удаленных препятствий
         self.total_removed_obstacles = 0
+
+        # Перезапуск музыки через родительский виджет
+        if self.parent:
+            self.parent.play_music(self.parent.game_music_path)
 
     def toggle_pause(self):
         if hasattr(self, "is_paused"):

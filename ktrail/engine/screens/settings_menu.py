@@ -1,6 +1,4 @@
-# engine/screens/settings_menu.py
-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox, QSlider
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
@@ -23,12 +21,26 @@ class SettingsMenu(QWidget):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
+        # Полноэкранный режим
         self.fullscreen_toggle = QCheckBox("Полноэкранный режим")
         self.fullscreen_toggle.setFont(QFont("Arial", 18))
         self.fullscreen_toggle.setChecked(self.parent.settings.get("fullscreen", False))
         self.fullscreen_toggle.stateChanged.connect(self.toggle_fullscreen)
         layout.addWidget(self.fullscreen_toggle)
 
+        # Регулировка громкости
+        volume_label = QLabel("Громкость музыки")
+        volume_label.setFont(QFont("Arial", 18))
+        layout.addWidget(volume_label)
+
+        self.volume_slider = QSlider(Qt.Horizontal)
+        self.volume_slider.setMinimum(0)
+        self.volume_slider.setMaximum(100)
+        self.volume_slider.setValue(self.parent.settings.get("music_volume", 50))  # Значение по умолчанию 50%
+        self.volume_slider.valueChanged.connect(self.update_music_volume)
+        layout.addWidget(self.volume_slider)
+
+        # Кнопка "Назад"
         back_button = QPushButton("Назад")
         back_button.setFont(QFont("Arial", 18))
         back_button.clicked.connect(self.return_to_previous_screen)
@@ -40,6 +52,13 @@ class SettingsMenu(QWidget):
         """Переключение полноэкранного режима."""
         if self.parent:
             self.parent.toggle_fullscreen()
+
+    def update_music_volume(self, value):
+        """Обновление громкости музыки."""
+        if self.parent:
+            self.parent.media_player.setVolume(value)
+            self.parent.settings["music_volume"] = value
+            self.parent.save_settings()  # Сохраняем настройки
 
     def set_previous_screen(self, screen_name):
         """Устанавливает предыдущий экран."""
