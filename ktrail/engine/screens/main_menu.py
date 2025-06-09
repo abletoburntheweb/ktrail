@@ -40,12 +40,10 @@ class MainMenu(QWidget):
         self.setLayout(layout)
 
     def start_game(self):
-        """Начать игру."""
-        print("Запуск игры...")
+        """Переход к выбору дистанции."""
+        print("Переход к выбору дистанции...")
         if self.parent:
-            # Сбрасываем игру и запускаем таймеры
-            self.parent.game_screen.reset_game()
-            self.parent.setCurrentWidget(self.parent.game_screen)
+            self.parent.setCurrentWidget(self.parent.distance_selection)
 
     def open_settings(self):
         """Настройки"""

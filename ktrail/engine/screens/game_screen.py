@@ -20,6 +20,10 @@ class GameScreen(QWidget):
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
 
+        self.target_distance = 0  # Целевая дистанция
+        self.distance_traveled = 0  # Пройденная дистанция
+        self.meters_per_frame = 0.1  # Скорость движения в метрах за кадр
+
         self.speed = 10
 
         self.init_ui()
@@ -130,16 +134,20 @@ class GameScreen(QWidget):
         # 1. Рисуем тайлы
         self.tile_manager.draw_tiles(painter)
 
-        # 2. Накладываем градиент дня/ночи
+        # 2. Отрисовка машин
+        for car in self.cars:
+            painter.drawPixmap(car.x, car.y, car.texture)
+
+        # 3. Накладываем градиент дня/ночи
         gradient = self.day_night.get_background_gradient(self.height())
         painter.setBrush(gradient)
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.rect())
 
-        # 3. Отрисовка линий
+        # 4. Отрисовка линий
         self.power_line.draw(painter, self.height())
 
-        # 4. Отрисовка трейла
+        # 5. Отрисовка трейла
         start_color = QColor("#4aa0fc")  # Голубой
         end_color = QColor("#FFFFFF")   # Белый
 
@@ -151,16 +159,12 @@ class GameScreen(QWidget):
 
             painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
 
-        # 5. Отрисовка игрока
+        # 6. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
-        # 6. Отрисовка препятствий
+        # 7. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
-
-        # 7. Отрисовка машин
-        for car in self.cars:
-            painter.drawPixmap(car.x, car.y, car.texture)
 
         # 8. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
@@ -172,6 +176,11 @@ class GameScreen(QWidget):
             painter.setBrush(light_gradient)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(light_pos, light_radius, light_radius)
+
+        if self.target_distance > 0:
+            painter.setPen(QColor(255, 255, 255))
+            text = f"Пройдено: {int(self.distance_traveled)} м / {self.target_distance} м"
+            painter.drawText(1700, 50, text)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -192,8 +201,22 @@ class GameScreen(QWidget):
         if event.key() in self.key_states:
             self.key_states[event.key()] = False
 
+    def set_target_distance(self, distance):
+        self.target_distance = distance
+        self.distance_traveled = 0
+        # Перезапуск таймеров и т.д.
+        self.timer.start(16)
+        self.obstacle_spawn_timer.start(2000)
+        self.time_timer.start(self.day_night.tick_interval_ms)
+
     def update_game(self):
         if self.is_game_over:
+            return
+
+        self.distance_traveled += self.meters_per_frame
+
+        if self.distance_traveled >= self.target_distance:
+            self.show_victory()
             return
 
         # Движение игрока
@@ -238,6 +261,20 @@ class GameScreen(QWidget):
                 self.show_game_over()
                 return
 
+    def show_victory(self):
+        self.is_game_over = True
+        self.timer.stop()
+        self.obstacle_spawn_timer.stop()
+        msg = QMessageBox()
+        msg.setWindowTitle("Победа!")
+        msg.setText(f"Вы проехали {int(self.target_distance)} метров!")
+        msg.setStandardButtons(QMessageBox.Ok)
+        choice = msg.exec_()
+        if choice == QMessageBox.Ok:
+            self.target_distance = 0
+            if self.parent:
+                self.parent.setCurrentWidget(self.parent.main_menu)
+
     def show_game_over(self):
         self.is_game_over = True
         self.timer.stop()
@@ -264,6 +301,8 @@ class GameScreen(QWidget):
         self.cars.clear()
         self.trail.clear()
         self.is_game_over = False
+
+        self.distance_traveled = 0
 
         # Пересоздаём тайлы
         self.tile_manager.init_tiles()
