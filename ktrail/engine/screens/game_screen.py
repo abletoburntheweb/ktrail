@@ -78,7 +78,7 @@ class GameScreen(QWidget):
 
         # Трейл игрока
         self.trail = []  # Трейл игрока
-        self.max_trail_length = 25
+        self.max_trail_length = 35
         self.trail_width = 10
         self.trail_color = QColor("#4aa0fc")  # Цвет трейла (HEX)
         self.target_trail_x = self.player.x + 15  # Целевая координата X для трейла
