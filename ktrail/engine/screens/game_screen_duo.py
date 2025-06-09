@@ -3,7 +3,9 @@
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget,QMessageBox
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient
-from engine.player import Player
+
+from engine.player_duo import PlayerDuo
+from engine.obstacle_duo import ObstacleDuo
 from engine.day_night import DayNightSystem
 from engine.tile_manager import TileManager
 
@@ -23,6 +25,7 @@ class GameScreenDuo(QWidget):
         self.tile_size = 192
         self.rows = 6
         self.columns = 10
+        # Инициализация TileManager
         self.tile_manager = TileManager(
             tile_size=self.tile_size,
             rows=self.rows,
@@ -30,13 +33,24 @@ class GameScreenDuo(QWidget):
             screen_width=self.width(),
             screen_height=self.height()
         )
-        self.tile_manager.add_tile_type("asphalt", ["assets/textures/asf.png"], weights=[1])
+
+        # Добавляем типы тайлов
+        self.tile_manager.add_tile_type(
+            "asphalt",
+            [
+                "assets/textures/asf.png",
+                "assets/textures/dev_w.png",
+                "assets/textures/dev_g.png"
+            ],
+            weights=[5, 3, 2]  # Частота появления текстур
+        )
         self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
-        self.tile_manager.init_tiles()
+        self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
+        self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
 
         # Игроки
-        self.player1 = Player()
-        self.player2 = Player()
+        self.player1 = PlayerDuo(player_id=1, y=520)  # Справа, WASD
+        self.player2 = PlayerDuo(player_id=2, y=520)  # Слева, Стрелки
 
         # Клавиши
         self.key_states = {
@@ -60,13 +74,25 @@ class GameScreenDuo(QWidget):
 
         # Препятствия
         self.obstacles = []
+        self.obstacle_spawn_timer = QTimer(self)
+        self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
+
+        # Трейлы
+        self.trail1 = []
+        self.trail2 = []
+        self.max_trail_length = 25
+        self.trail_width = 10
+        self.trail_color1 = QColor("#4aa0fc")  # голубой
+        self.trail_color2 = QColor("#ff6b6b")  # красный
 
         # Таймеры
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
 
-        self.day_timer = QTimer(self)
-        self.day_timer.timeout.connect(self.update_day_night)
+
+        # Таймер обновления времени
+        self.time_timer = QTimer(self)
+        self.time_timer.timeout.connect(self.update_day_night)
 
         # Состояние игры
         self.is_game_over = False
@@ -78,6 +104,11 @@ class GameScreenDuo(QWidget):
     def update_day_night(self):
         self.day_night.update_time()
         self.update()
+
+    def spawn_obstacle(self):
+        if not self.is_game_over:
+            obstacle = ObstacleDuo()
+            self.obstacles.append(obstacle)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -139,6 +170,15 @@ class GameScreenDuo(QWidget):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
             self.toggle_pause()
+        elif event.text() == '~':
+            if self.parent:
+                if self.parent.debug_menu.isVisible():
+                    self.parent.debug_menu.hide()
+                else:
+                    self.parent.debug_menu.update_debug_info(self.day_night)
+                    self.parent.debug_menu.show()
+                    self.parent.debug_menu.raise_()
+                    self.parent.debug_menu.setFocus()
         elif event.key() in self.key_states:
             self.key_states[event.key()] = True
 
@@ -162,15 +202,10 @@ class GameScreenDuo(QWidget):
             return
 
         # Управление игроками
-        if self.key_states[Qt.Key_W]: self.player1.move(Qt.Key_Up)
-        if self.key_states[Qt.Key_S]: self.player1.move(Qt.Key_Down)
-        if self.key_states[Qt.Key_A]: self.player1.move(Qt.Key_Left)
-        if self.key_states[Qt.Key_D]: self.player1.move(Qt.Key_Right)
-
-        if self.key_states[Qt.Key_Up]: self.player2.move(Qt.Key_Up)
-        if self.key_states[Qt.Key_Down]: self.player2.move(Qt.Key_Down)
-        if self.key_states[Qt.Key_Left]: self.player2.move(Qt.Key_Left)
-        if self.key_states[Qt.Key_Right]: self.player2.move(Qt.Key_Right)
+        for key, pressed in self.key_states.items():
+            if pressed:
+                self.player1.move(key)
+                self.player2.move(key)
 
         # Обновляем трейлы
         self.trail1.insert(0, (self.player1.x + 15, self.player1.y))
@@ -186,8 +221,6 @@ class GameScreenDuo(QWidget):
         # Передвигаем препятствия
         for obstacle in self.obstacles:
             obstacle.move()
-
-        # Удаляем ушедшие за экран
         self.obstacles = [o for o in self.obstacles if not o.is_off_screen()]
 
         # Проверяем столкновения
@@ -237,8 +270,8 @@ class GameScreenDuo(QWidget):
                 self.parent.setCurrentWidget(self.parent.main_menu)
 
     def reset_game(self):
-        self.player1 = Player()
-        self.player2 = Player()
+        self.player1 = PlayerDuo(player_id=1)
+        self.player2 = PlayerDuo(player_id=2)
         self.trail1.clear()
         self.trail2.clear()
         self.obstacles.clear()
@@ -247,6 +280,8 @@ class GameScreenDuo(QWidget):
         self.tile_manager.init_tiles()
         self.day_night.current_tick = 8200
         self.timer.start(16)
+        self.obstacle_spawn_timer.start(2000)
+        self.time_timer.start(self.day_night.tick_interval_ms)
 
     def toggle_pause(self):
         if hasattr(self, "is_paused"):
