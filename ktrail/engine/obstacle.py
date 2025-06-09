@@ -1,8 +1,8 @@
 # engine/screens/obstacle.py
 
 from random import choice
-from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtGui import QColor, QRadialGradient
 
 
 class Obstacle:
@@ -138,3 +138,76 @@ class ExposedWire:
         :return: True, если провод достиг или пересек delete_y.
         """
         return self.y >= delete_y
+
+
+class StreetLamp:
+    def __init__(self, screen_width, screen_height, lamp_width=40, lamp_height=80):
+        """
+        Класс для представления дорожного фонаря.
+        :param screen_width: Ширина экрана.
+        :param screen_height: Высота экрана.
+        :param lamp_width: Ширина фонаря.
+        :param lamp_height: Высота фонаря.
+        """
+        # Координаты x для фонарей (слева от линий)
+        self.x_positions = [4, 704]  # Смещение на 50 пикселей влево
+
+        self.lamp_width = lamp_width
+        self.lamp_height = lamp_height
+
+        # Выбираем случайную линию
+        self.line_index = choice(range(len(self.x_positions)))
+        self.x = self.x_positions[self.line_index]
+
+        # Начальная позиция y (выше экрана)
+        self.y = -self.lamp_height
+
+        # Скорость движения
+        self.speed = 10
+
+        # Свет фонаря
+        self.light_radius = 150
+        self.light_color = QColor(255, 240, 200, 120)  # Цвет света
+        self.is_light_on = False  # Флаг для управления светом
+
+    def move(self):
+        """Перемещение фонаря вниз."""
+        self.y += self.speed
+
+    def get_rect(self):
+        """Возвращает QRect для проверки столкновений."""
+        return QRect(self.x, self.y, self.lamp_width, self.lamp_height)
+
+    def is_off_screen(self, delete_y):
+        """
+        Проверяет, достиг ли фонарь заданной координаты y.
+        :param delete_y: Координата y, на которой фонарь должен быть удален.
+        :return: True, если фонарь достиг или пересек delete_y.
+        """
+        return self.y >= delete_y
+
+    def update_light_state(self, day_night_system):
+        """
+        Обновляет состояние света фонаря на основе времени суток.
+        :param day_night_system: Экземпляр DayNightSystem.
+        """
+        self.is_light_on = not day_night_system.is_day()
+
+    def draw_light(self, painter, screen_height):
+        """
+        Отрисовка света фонаря.
+        :param painter: QPainter для отрисовки.
+        :param screen_height: Высота экрана.
+        """
+        if self.is_light_on:
+            light_pos_x = self.x + self.lamp_width // 2
+            light_pos_y = self.y + self.lamp_height
+            gradient = QRadialGradient(light_pos_x, light_pos_y, self.light_radius)
+            gradient.setColorAt(0, self.light_color)
+            gradient.setColorAt(1, QColor(255, 240, 200, 0))
+            painter.setBrush(gradient)
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(light_pos_x - self.light_radius,
+                                light_pos_y - self.light_radius,
+                                self.light_radius * 2,
+                                self.light_radius * 2)

@@ -8,7 +8,7 @@ from engine.car import Car
 # Импорты других классов
 from engine.day_night import DayNightSystem
 from engine.player import Player
-from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower
+from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower, StreetLamp
 from engine.tile_manager import TileManager  # Новый менеджер тайлов
 
 
@@ -69,6 +69,14 @@ class GameScreen(QWidget):
         self.tower_spawn_timer = QTimer(self)
         self.tower_spawn_timer.timeout.connect(self.spawn_transmission_tower)
         self.tower_spawn_timer.start(8000)  # Спавн каждые 8 секунд
+
+        # Фонари
+        self.street_lamps = []
+
+        # Таймер для спавна фонарей
+        self.lamp_spawn_timer = QTimer(self)
+        self.lamp_spawn_timer.timeout.connect(self.spawn_street_lamp)
+        self.lamp_spawn_timer.start(6000)  # Спавн каждые 6 секунд
 
         # Препятствия
         self.obstacles = []
@@ -142,6 +150,11 @@ class GameScreen(QWidget):
             exposed_wire = ExposedWire(self.width(), self.height())
             self.exposed_wires.append(exposed_wire)
 
+    def spawn_street_lamp(self):
+        """Генерация нового фонаря."""
+        if not self.is_game_over:
+            lamp = StreetLamp(self.width(), self.height())
+            self.street_lamps.append(lamp)
     def spawn_car(self):
         """Генерация новой машины (двигается снизу вверх по правому ряду)"""
         if not self.is_game_over:
@@ -195,6 +208,12 @@ class GameScreen(QWidget):
         # 9. Отрисовка оголенного провода
         for exposed_wire in self.exposed_wires:
             painter.fillRect(exposed_wire.get_rect(), QBrush(exposed_wire.color))
+
+        for lamp in self.street_lamps:
+            # Отрисовка самого фонаря
+            painter.fillRect(lamp.get_rect(), QBrush(Qt.darkGray))
+            # Отрисовка света фонаря
+            lamp.draw_light(painter, self.height())
 
         # 10. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
@@ -294,6 +313,16 @@ class GameScreen(QWidget):
         initial_count = len(self.transmission_towers)
         self.transmission_towers = [tower for tower in self.transmission_towers if not tower.is_off_screen()]
         self.total_removed_obstacles += initial_count - len(self.transmission_towers)
+
+        # Движение фонарей
+        for lamp in self.street_lamps:
+            lamp.move()
+            lamp.update_light_state(self.day_night)
+
+        # Удаление ушедших за экран фонарей
+        initial_count = len(self.street_lamps)
+        self.street_lamps = [lamp for lamp in self.street_lamps if not lamp.is_off_screen(540)]
+        self.total_removed_obstacles += initial_count - len(self.street_lamps)
 
         # Удаление ушедших за экран
         initial_count = len(self.obstacles)

@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QRect, QTimer
 
 
 class Player:
-    def __init__(self, y=520, size=40):
+    def __init__(self, y=780, size=40):
         self.x_positions = [704, 954, 1204]
         self.current_x_index = 1
         self.x = self.x_positions[self.current_x_index]
