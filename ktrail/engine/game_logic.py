@@ -192,8 +192,8 @@ class GameEngine(QStackedWidget):
         self.media_player.stop()
         self.close()
 
-
-    def interpolate_color(self, color1, color2, factor):
+    @staticmethod
+    def interpolate_color(color1, color2, factor):
         """
         Интерполяция между двумя цветами.
         :param color1: Начальный цвет (QColor).

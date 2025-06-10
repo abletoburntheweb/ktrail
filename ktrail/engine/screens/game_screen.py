@@ -1,4 +1,5 @@
 # engine/screens/game_screen.py
+from time import perf_counter
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox
@@ -16,6 +17,11 @@ class GameScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+
+        # Добавляем переменные для расчета FPS
+        self.frame_count = 0
+        self.fps = 0
+        self.last_fps_update_time = perf_counter()
 
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
@@ -235,6 +241,10 @@ class GameScreen(QWidget):
         speed_text = f"Скорость: {self.player.get_current_speed()} м/с"
         painter.drawText(10, 30, speed_text)
 
+        # Отображение FPS
+        fps_text = f"FPS: {self.fps:.1f}"
+        painter.drawText(10, 60, fps_text)
+
     def keyPressEvent(self, event):
         """Обработка нажатия клавиш."""
         if event.key() == Qt.Key_Escape:
@@ -267,6 +277,17 @@ class GameScreen(QWidget):
         """Обновление игрового процесса."""
         if self.is_game_over:
             return
+
+            # Подсчет FPS
+        self.frame_count += 1
+        current_time = perf_counter()
+        elapsed_time = current_time - self.last_fps_update_time
+
+        if elapsed_time >= 1.0:  # Обновляем FPS каждую секунду
+            self.fps = self.frame_count / elapsed_time
+            self.frame_count = 0
+            self.last_fps_update_time = current_time
+
 
         # Динамический расчет пройденного расстояния
         current_speed = self.player.get_current_speed()  # Текущая скорость игрока
