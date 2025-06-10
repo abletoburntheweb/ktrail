@@ -55,12 +55,8 @@ class GameScreenDuo(QWidget):
 
         # Клавиши
         self.key_states = {
-            Qt.Key_W: False,
-            Qt.Key_S: False,
             Qt.Key_A: False,
             Qt.Key_D: False,
-            Qt.Key_Up: False,
-            Qt.Key_Down: False,
             Qt.Key_Left: False,
             Qt.Key_Right: False,
         }
@@ -196,7 +192,7 @@ class GameScreenDuo(QWidget):
         self.target_distance = distance
         self.distance_traveled = 0
         self.timer.start(16)
-        self.day_timer.start(self.day_night.tick_interval_ms)
+        self.time_timer.start(self.day_night.tick_interval_ms)
 
     def update_game(self):
         if self.is_game_over:

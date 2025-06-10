@@ -9,6 +9,7 @@ class DistanceSelection(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.is_duo = False
         self.init_ui()
 
     def init_ui(self):
@@ -38,11 +39,21 @@ class DistanceSelection(QWidget):
         self.setLayout(layout)
 
     def start_game(self, distance):
-        """Передаём выбранную дистанцию в GameScreen и запускаем игру"""
+        """Запуск игры с выбранной дистанцией (одиночная или дуо)"""
         if self.parent:
-            self.parent.game_screen.reset_game()
-            self.parent.game_screen.set_target_distance(distance)
-            self.parent.setCurrentWidget(self.parent.game_screen)
+            if self.is_duo == False:
+                self.parent.game_screen.reset_game()
+                self.parent.game_screen.set_target_distance(distance)
+                self.parent.setCurrentWidget(self.parent.game_screen)
+            else:
+                self.parent.game_screen_duo.reset_game()
+                self.parent.game_screen_duo.set_target_distance(distance)
+                self.parent.setCurrentWidget(self.parent.game_screen_duo)
+
+            # Сбрасываем флаг
+            self.is_duo = False
+
+
 
     def go_back(self):
         """Возвращаемся в главное меню"""

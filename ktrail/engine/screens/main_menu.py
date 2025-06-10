@@ -50,10 +50,10 @@ class MainMenu(QWidget):
             self.parent.setCurrentWidget(self.parent.distance_selection)
 
     def start_duo(self):
-        print("Переход кдуо режиму...")
+        print("Переход к дуо...")
         if self.parent:
-            self.parent.game_screen_duo.reset_game()
-            self.parent.setCurrentWidget(self.parent.game_screen_duo)
+            self.parent.distance_selection.is_duo = True
+            self.parent.setCurrentWidget(self.parent.distance_selection)
     def open_settings(self):
         """Настройки"""
         print("Открытие настроек...")
