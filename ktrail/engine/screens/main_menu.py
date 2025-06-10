@@ -1,19 +1,27 @@
-# engine/screens/main_menu.py
 from PyQt5.QtGui import QPixmap, QPainter, QFont
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel
-from PyQt5.QtCore import Qt
-
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 
 class MainMenu(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+
         self.background_pixmap = QPixmap("assets/textures/demo.png")
+        self.logo_pixmap = QPixmap("assets/textures/logo.png")
+
+        self.b_x = 25
+        self.b_y = 450
+
+        self.logo_label = None
+        self.background_label = QLabel(self)
+
         self.init_ui()
+        self.init_intro()
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        if not self.background_pixmap.isNull():
+        if not self.background_pixmap.isNull() and hasattr(self, "show_background") and self.show_background:
+            painter = QPainter(self)
             scaled_pixmap = self.background_pixmap.scaled(
                 self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
             )
@@ -27,18 +35,64 @@ class MainMenu(QWidget):
         self.setFixedSize(1920, 1080)
 
         self.gradient_label = QLabel(self)
-        self.gradient_label.setGeometry(0, 0, 1000, 1080)  # совпадает с областью меню
+        self.gradient_label.setGeometry(0, 0, 800, 1080)
         self.gradient_label.setStyleSheet("""
             background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                                 stop:0 rgba(0,0,0,220), stop:1 transparent);
+                                                 stop:0 rgba(0,0,0,250), stop:1 rgba(0,0,0,40));
         """)
 
-        self.title_label = self.create_label("Ktrail", font_size=96, bold=True, x=150, y=100, w=600, h=150)
+        self.title_label = self.create_label("Ktrail", font_size=96, bold=True, x=225, y=220, w=600, h=150)
 
-        self.start_button = self.create_button("Начать игру", self.start_game, x=125, y=420, w=550, h=55)
-        self.start_duo_button = self.create_button("Играть вдвоем", self.start_duo, x=125, y=500, w=550, h=55)
-        self.settings_button = self.create_button("Настройки", self.open_settings, x=125, y=580, w=550, h=55)
-        self.exit_button = self.create_button("Выход", self.exit_game, x=125, y=660, w=550, h=55)
+        self.start_button = self.create_button("Начать игру", self.start_game, x=self.b_x, y=self.b_y, w=750, h=55)
+        self.start_duo_button = self.create_button("Играть вдвоем", self.start_duo, x=self.b_x, y=self.b_y+80, w=750, h=55)
+        self.settings_button = self.create_button("Настройки", self.open_settings, x=self.b_x, y=self.b_y+160, w=750, h=55)
+        self.exit_button = self.create_button("Выход", self.exit_game, x=self.b_x, y=self.b_y+240, w=750, h=55)
+
+        for widget in [self.background_label, self.gradient_label, self.title_label,
+                       self.start_button, self.start_duo_button,
+                       self.settings_button, self.exit_button]:
+            widget.hide()
+
+    def init_intro(self):
+        self.logo_label = QLabel(self)
+        if self.logo_pixmap.isNull():
+            print("Ошибка: не удалось загрузить assets/textures/logo.png")
+        else:
+            self.logo_label.setPixmap(self.logo_pixmap.scaled(
+                self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
+            self.logo_label.setGeometry(0, 0, self.width(), self.height())
+            self.logo_label.setAlignment(Qt.AlignCenter)
+            self.logo_label.show()
+
+            self.fade(self.logo_label, duration=1500)
+        QTimer.singleShot(2000, self.finish_intro)
+
+    def finish_intro(self):
+        self.show_background = True
+        self.update()
+        if self.logo_label:
+            self.logo_label.hide()
+            self.logo_label.deleteLater()
+            self.logo_label = None
+
+        self.setStyleSheet("")
+
+        for widget in [self.background_label, self.gradient_label, self.title_label,
+                       self.start_button, self.start_duo_button,
+                       self.settings_button, self.exit_button]:
+            widget.show()
+            self.fade(widget, duration=600)
+
+    def fade(self, widget, duration=500):
+        effect = QGraphicsOpacityEffect(widget)
+        widget.setGraphicsEffect(effect)
+        animation = QPropertyAnimation(effect, b"opacity")
+        animation.setDuration(duration)
+        animation.setEasingCurve(QEasingCurve.OutQuad)
+        animation.setStartValue(0)
+        animation.setEndValue(1)
+        widget.animation = animation
+        animation.start()
 
     def create_button(self, text, callback, x, y, w, h):
         button = QPushButton(text, self)
