@@ -58,4 +58,5 @@ class PauseMenu(QWidget):
         print("Выход в главное меню...")
         if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
             self.parent.game_screen.toggle_pause()
+            self.parent.main_menu.restore_menu()
             self.parent.setCurrentWidget(self.parent.main_menu)
