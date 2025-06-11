@@ -48,8 +48,9 @@ class MainMenu(QWidget):
         # Кнопки
         self.start_button = self.create_button("Начать игру", self.start_game, x=self.b_x, y=self.b_y, w=750, h=55)
         self.start_duo_button = self.create_button("Играть вдвоем", self.start_duo, x=self.b_x, y=self.b_y + 80, w=750, h=55)
-        self.settings_button = self.create_button("Настройки", self.open_settings, x=self.b_x, y=self.b_y + 160, w=750, h=55)
-        self.exit_button = self.create_button("Выход", self.exit_game, x=self.b_x, y=self.b_y + 240, w=750, h=55)
+        self.leaderboard_button = self.create_button("Таблица рекордов", self.open_leaderboard,  x=self.b_x, y=self.b_y + 160, w=550, h=55)
+        self.settings_button = self.create_button("Настройки", self.open_settings, x=self.b_x, y=self.b_y + 240, w=750, h=55)
+        self.exit_button = self.create_button("Выход", self.exit_game, x=self.b_x, y=self.b_y + 320, w=750, h=55)
 
         self.widgets_to_restore = [
             self.background_label,
@@ -57,6 +58,7 @@ class MainMenu(QWidget):
             self.title_label,
             self.start_button,
             self.start_duo_button,
+            self.leaderboard_button,
             self.settings_button,
             self.exit_button
         ]
@@ -99,6 +101,7 @@ class MainMenu(QWidget):
             self.title_label,
             self.start_button,
             self.start_duo_button,
+            self.leaderboard_button,
             self.settings_button,
             self.exit_button
         ]:
@@ -161,6 +164,7 @@ class MainMenu(QWidget):
             self.title_label,
             self.start_button,
             self.start_duo_button,
+            self.leaderboard_button,
             self.settings_button,
             self.exit_button
         ]
@@ -203,6 +207,12 @@ class MainMenu(QWidget):
         self.animate_left_panel_out()
         self.parent.distance_selection.is_duo = True
 
+    def open_leaderboard(self):
+        print("Открытие таблицы рекордов...")
+        if self.parent:
+            self.parent.leaderboard_screen.set_previous_screen("main_menu")
+            self.parent.setCurrentWidget(self.parent.leaderboard_screen)
+
     def open_settings(self):
         print("Открытие настроек...")
         if self.parent:
@@ -215,9 +225,9 @@ class MainMenu(QWidget):
             self.parent.exit_game()
 
     def disable_buttons(self):
-        for btn in [self.start_button, self.start_duo_button, self.settings_button, self.exit_button]:
+        for btn in [self.start_button, self.start_duo_button, self.leaderboard_button, self.settings_button, self.exit_button]:
             btn.setDisabled(True)
 
     def enable_buttons(self):
-        for btn in [self.start_button, self.start_duo_button, self.settings_button, self.exit_button]:
+        for btn in [self.start_button, self.start_duo_button, self.leaderboard_button,  self.settings_button, self.exit_button]:
             btn.setDisabled(False)
