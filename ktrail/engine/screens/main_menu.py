@@ -188,8 +188,9 @@ class MainMenu(QWidget):
         b_y = 450
         self.start_button.move(b_x, b_y)
         self.start_duo_button.move(b_x, b_y + 80)
-        self.settings_button.move(b_x, b_y + 160)
-        self.exit_button.move(b_x, b_y + 240)
+        self.leaderboard_button.move(b_x, b_y + 160)
+        self.settings_button.move(b_x, b_y + 240)
+        self.exit_button.move(b_x, b_y + 320)
 
         screen_pixmap = self.grab()
 

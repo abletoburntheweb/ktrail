@@ -57,12 +57,12 @@ class DistanceSelection(QWidget):
         RotatingPanel.assemble_transition(
             self,
             on_finished=self.on_animation_finished,
-            background_path="assets/textures/dev_car.png"
+            background_path="assets/textures/cus.png"
         )
 
     def on_animation_finished(self):
         self.temp_background = QLabel(self)
-        dev_g_pixmap = QPixmap("assets/textures/dev_car.png")
+        dev_g_pixmap = QPixmap("assets/textures/cus.png")
         scaled = dev_g_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         self.temp_background.setPixmap(scaled)
         self.temp_background.resize(self.size())
