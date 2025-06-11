@@ -13,6 +13,7 @@ class RotatingPanel(QLabel):
         self.setGeometry(x, y, width, height)
         self._angle = 0
         self.animation = None
+        self.spin = QPixmap("assets/textures/panel.png")
 
     def get_angle(self):
         return self._angle
@@ -43,7 +44,10 @@ class RotatingPanel(QLabel):
         if not is_back_side:
             painter.drawPixmap(0, 0, self.pixmap())
         else:
-            painter.fillRect(self.rect(), Qt.black)
+            if not self.spin.isNull():
+                painter.drawPixmap(0, 0, self.width(), self.height(), self.spin)
+            else:
+                painter.fillRect(self.rect(), Qt.black)
 
     def start_animation(self, delay=0):
         """Запуск анимации переворота с задержкой"""
