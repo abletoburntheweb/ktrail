@@ -1,4 +1,5 @@
 # engine/screens/game_screen.py
+import json
 from time import perf_counter
 
 from PyQt5.QtCore import Qt, QTimer
@@ -18,10 +19,14 @@ class GameScreen(QWidget):
         super().__init__(parent)
         self.parent = parent
 
+        self.start_time = None  # Время начала игры
+        self.elapsed_time = 0  # Затраченное время (в секундах)
+
         # Добавляем переменные для расчета FPS
         self.frame_count = 0
         self.fps = 0
         self.last_fps_update_time = perf_counter()
+        self.show_fps = self.parent.settings.get("show_fps", True)
 
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
@@ -242,8 +247,19 @@ class GameScreen(QWidget):
         painter.drawText(10, 30, speed_text)
 
         # Отображение FPS
-        fps_text = f"FPS: {self.fps:.1f}"
-        painter.drawText(10, 60, fps_text)
+        if self.show_fps:
+            painter.setPen(QColor(255, 255, 255))
+            fps_text = f"FPS: {self.fps:.1f}"
+            painter.drawText(10, 60, fps_text)
+
+        # Отображение таймера
+        timer_text = f"Время: {self.elapsed_time:.1f} сек"
+        painter.drawText(10, 90, timer_text)
+
+    def update_fps_visibility(self, visible):
+        """Обновляет видимость FPS."""
+        self.show_fps = visible
+        self.update()
 
     def keyPressEvent(self, event):
         """Обработка нажатия клавиш."""
@@ -268,6 +284,8 @@ class GameScreen(QWidget):
     def set_target_distance(self, distance):
         self.target_distance = distance
         self.distance_traveled = 0
+        self.start_time = perf_counter()  # Фиксируем время начала игры
+        self.elapsed_time = 0  # Сбрасываем затраченное время
         # Перезапуск таймеров и т.д.
         self.timer.start(16)
         self.obstacle_spawn_timer.start(2000)
@@ -278,16 +296,18 @@ class GameScreen(QWidget):
         if self.is_game_over:
             return
 
-            # Подсчет FPS
+        # Подсчет FPS
         self.frame_count += 1
         current_time = perf_counter()
-        elapsed_time = current_time - self.last_fps_update_time
-
-        if elapsed_time >= 1.0:  # Обновляем FPS каждую секунду
-            self.fps = self.frame_count / elapsed_time
+        elapsed_time_fps = current_time - self.last_fps_update_time
+        if elapsed_time_fps >= 1.0:  # Обновляем FPS каждую секунду
+            self.fps = self.frame_count / elapsed_time_fps
             self.frame_count = 0
             self.last_fps_update_time = current_time
 
+        # Обновляем затраченное время
+        if self.start_time is not None:
+            self.elapsed_time = current_time - self.start_time
 
         # Динамический расчет пройденного расстояния
         current_speed = self.player.get_current_speed()  # Текущая скорость игрока
@@ -389,17 +409,40 @@ class GameScreen(QWidget):
                 self.show_game_over()
                 return
 
+    def save_record(self, distance, time):
+        """
+        Сохранение рекорда в файл/базу данных.
+        :param distance: Дистанция (в метрах).
+        :param time: Время прохождения (в секундах).
+        """
+        try:
+            with open("leaderboard.json", "r") as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
+
+        records = data.get(str(distance), [])
+        records.append(time)
+        records.sort()  # Сортировка по времени (лучшее время сверху)
+        data[str(distance)] = records
+
+        with open("leaderboard.json", "w") as file:
+            json.dump(data, file, indent=4)
+
     def show_victory(self):
         self.is_game_over = True
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
 
+        # Сохраняем рекорд
+        time_taken = self.elapsed_time  # Используем затраченное время
+        self.save_record(self.target_distance, time_taken)
+
         msg = QMessageBox()
         msg.setWindowTitle("Победа!")
-        msg.setText(f"Вы проехали {int(self.target_distance)} метров!")
+        msg.setText(f"Вы проехали {int(self.target_distance)} метров за {time_taken:.1f} сек!")
         msg.setStandardButtons(QMessageBox.Ok)
         choice = msg.exec_()
-
         if choice == QMessageBox.Ok:
             self.target_distance = 0
             if self.parent:
@@ -437,6 +480,8 @@ class GameScreen(QWidget):
         self.transmission_towers.clear()  # Очищаем список опор ЛЭП
         self.is_game_over = False
         self.distance_traveled = 0
+        self.start_time = None  # Сбрасываем время начала игры
+        self.elapsed_time = 0  # Сбрасываем затраченное время
 
         # Пересоздаём тайлы
         self.tile_manager.init_tiles()

@@ -40,6 +40,13 @@ class SettingsMenu(QWidget):
         self.volume_slider.valueChanged.connect(self.update_music_volume)
         layout.addWidget(self.volume_slider)
 
+        # Переключатель отображения FPS
+        self.fps_toggle = QCheckBox("Отображать FPS")
+        self.fps_toggle.setFont(QFont("Arial", 18))
+        self.fps_toggle.setChecked(self.parent.settings.get("show_fps", True))  # Значение по умолчанию: True
+        self.fps_toggle.stateChanged.connect(self.toggle_fps)
+        layout.addWidget(self.fps_toggle)
+
         # Кнопка "Назад"
         back_button = QPushButton("Назад")
         back_button.setFont(QFont("Arial", 18))
@@ -59,6 +66,17 @@ class SettingsMenu(QWidget):
             self.parent.media_player.setVolume(value)
             self.parent.settings["music_volume"] = value
             self.parent.save_settings()  # Сохраняем настройки
+
+    def toggle_fps(self, state):
+        """Переключение отображения FPS."""
+        if self.parent:
+            self.parent.settings["show_fps"] = bool(state)  # Сохраняем состояние чекбокса
+            self.parent.save_settings()  # Сохраняем настройки
+            # Обновляем видимость FPS в обоих игровых экранах
+            if hasattr(self.parent, "game_screen"):
+                self.parent.game_screen.update_fps_visibility(bool(state))
+            if hasattr(self.parent, "game_screen_duo"):
+                self.parent.game_screen_duo.update_fps_visibility(bool(state))
 
     def set_previous_screen(self, screen_name):
         """Устанавливает предыдущий экран."""

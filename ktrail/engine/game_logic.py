@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QUrl
 import json
 
 from engine.screens.game_screen import GameScreen
+from engine.screens.leaderboard_screen import LeaderboardScreen
 from engine.screens.main_menu import MainMenu
 
 
@@ -43,6 +44,7 @@ class GameEngine(QStackedWidget):
         from engine.screens.pause_menu import PauseMenu
         from engine.screens.settings_menu import SettingsMenu
         from engine.screens.debug_menu import DebugMenuScreen
+        from engine.screens.leaderboard_screen import LeaderboardScreen  # Новый импорт
 
         self.main_menu = MainMenu(self)
         self.addWidget(self.main_menu)
@@ -64,6 +66,10 @@ class GameEngine(QStackedWidget):
 
         self.debug_menu = DebugMenuScreen(self)
         self.debug_menu.hide()
+
+        # Инициализация экрана таблицы рекордов
+        self.leaderboard_screen = LeaderboardScreen(self)
+        self.addWidget(self.leaderboard_screen)
 
         if self.settings.get("fullscreen", False):
             self.set_fullscreen(True)
@@ -162,6 +168,13 @@ class GameEngine(QStackedWidget):
                 self.play_music(self.game_music_path)
             else:
                 print("Игровая музыка уже играет.")
+
+        elif isinstance(current_widget, LeaderboardScreen):
+            # При необходимости можно оставить текущую музыку или изменить её
+            print("Переключение на экран таблицы рекордов...")
+            # Если нужна своя музыка для таблицы рекордов, раскомментируйте следующие строки:
+            # leaderboard_music_path = "assets/audio/leaderboard_music.mp3"
+            # self.play_music(leaderboard_music_path)
 
     def toggle_fullscreen(self):
         """Переключение между полноэкранным и оконным режимом."""

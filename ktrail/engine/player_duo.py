@@ -53,6 +53,7 @@ class PlayerDuo:
         if not self.can_change_speed:
             return
 
+        # Используем клавиши из словаря self.controls
         if key == self.controls['speed_up']:  # Увеличение скорости
             if self.current_speed_index < len(self.speed_levels) - 1:
                 self.current_speed_index += 1
@@ -72,7 +73,7 @@ class PlayerDuo:
 
     def get_rect(self):
         """Возвращает прямоугольник для коллизий."""
-        return QRect(int(self.x), self.y, self.size, self.size)
+        return QRect(int(self.x), int(self.y), self.size, self.size)
 
     def get_current_speed(self):
         """Возвращает текущую скорость."""
