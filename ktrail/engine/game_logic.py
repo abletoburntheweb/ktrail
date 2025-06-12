@@ -32,6 +32,17 @@ class GameEngine(QStackedWidget):
         initial_volume = self.settings.get("music_volume", 50)
         self.media_player.setVolume(initial_volume)
 
+        # Пути к звуковым эффектам
+        self.select_sound_path = "assets/audio/select_click.mp3"
+        self.cancel_sound_path = "assets/audio/cancel_click.mp3"
+
+        # Инициализация медиаплеера для звуковых эффектов
+        self.sound_player = QMediaPlayer()
+
+        # Установка громкости звуковых эффектов
+        self.sound_volume = 80  # Пример значения громкости
+        self.sound_player.setVolume(self.sound_volume)
+
         # Подключение сигналов
         self.currentChanged.connect(self.on_screen_changed)
 
@@ -97,6 +108,30 @@ class GameEngine(QStackedWidget):
                 json.dump(self.settings, file, indent=4)
         except Exception as e:
             print(f"Ошибка сохранения настроек: {e}")
+
+    def play_select_sound(self):
+        """
+        Воспроизведение звукового эффекта select_click.
+        """
+        try:
+            print("Воспроизведение звука select_click...")
+            media_content = QMediaContent(QUrl.fromLocalFile(self.select_sound_path))
+            self.sound_player.setMedia(media_content)
+            self.sound_player.play()
+        except Exception as e:
+            print(f"Ошибка воспроизведения звука select_click: {e}")
+
+    def play_cancel_sound(self):
+        """
+        Воспроизведение звукового эффекта cancel_click.
+        """
+        try:
+            print("Воспроизведение звука cancel_click...")
+            media_content = QMediaContent(QUrl.fromLocalFile(self.cancel_sound_path))
+            self.sound_player.setMedia(media_content)
+            self.sound_player.play()
+        except Exception as e:
+            print(f"Ошибка воспроизведения звука cancel_click: {e}")
 
     def play_intro_music(self):
         """Воспроизведение музыки интро."""

@@ -84,6 +84,8 @@ class SettingsMenu(QWidget):
 
     def return_to_previous_screen(self):
         """Возвращает пользователя на предыдущий экран."""
+        if self.parent:
+            self.parent.play_cancel_sound()  # Воспроизведение звука cancel_click
         if self.previous_screen == "pause_menu":
             print("Возвращение в меню паузы...")
             if self.parent:

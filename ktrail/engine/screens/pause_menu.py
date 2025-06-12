@@ -22,16 +22,19 @@ class PauseMenu(QWidget):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
+        # Кнопка "Продолжить"
         continue_button = QPushButton("Продолжить")
         continue_button.setFont(QFont("Arial", 18))
         continue_button.clicked.connect(self.continue_game)
         layout.addWidget(continue_button)
 
+        # Кнопка "Настройки"
         settings_button = QPushButton("Настройки")
         settings_button.setFont(QFont("Arial", 18))
         settings_button.clicked.connect(self.open_settings)
         layout.addWidget(settings_button)
 
+        # Кнопка "Выйти в главное меню"
         exit_to_main_menu_button = QPushButton("Выйти в главное меню")
         exit_to_main_menu_button.setFont(QFont("Arial", 18))
         exit_to_main_menu_button.clicked.connect(self.exit_to_main_menu)
@@ -42,6 +45,8 @@ class PauseMenu(QWidget):
     def continue_game(self):
         """Продолжить игру."""
         print("Продолжение игры...")
+        if self.parent:
+            self.parent.play_select_sound()  # Звуковой эффект select_click
         if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
             self.parent.game_screen.toggle_pause()
             self.parent.setCurrentWidget(self.parent.game_screen)
@@ -50,12 +55,15 @@ class PauseMenu(QWidget):
         """Открыть меню настроек."""
         print("Открытие меню настроек...")
         if self.parent:
+            self.parent.play_select_sound()  # Звуковой эффект select_click
             self.parent.settings_menu.set_previous_screen("pause_menu")
             self.parent.setCurrentWidget(self.parent.settings_menu)
 
     def exit_to_main_menu(self):
         """Выйти в главное меню."""
         print("Выход в главное меню...")
+        if self.parent:
+            self.parent.play_cancel_sound()  # Звуковой эффект cancel_click
         if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
             self.parent.game_screen.toggle_pause()
             self.parent.setCurrentWidget(self.parent.main_menu)

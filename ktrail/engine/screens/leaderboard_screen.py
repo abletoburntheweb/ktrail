@@ -61,6 +61,7 @@ class LeaderboardScreen(QWidget):
             print("Возвращение в главное меню...")
             if self.parent:
                 self.parent.setCurrentWidget(self.parent.main_menu)
+                self.parent.play_cancel_sound()
         else:
             print("Неизвестный предыдущий экран. Возвращаемся в главное меню...")
             if self.parent:

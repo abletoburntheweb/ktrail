@@ -110,6 +110,7 @@ class DistanceSelection(QWidget):
 
     def go_back(self):
         if self.parent:
+            self.parent.play_cancel_sound()
             self.disable_buttons()
             QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
             QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))

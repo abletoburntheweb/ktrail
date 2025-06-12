@@ -130,7 +130,7 @@ class MainMenu(QWidget):
     def create_button(self, text, callback, x, y, w, h):
         button = QPushButton(text, self)
         button.setFont(QFont("Arial", 20))
-        button.clicked.connect(callback)
+        button.clicked.connect(lambda: self.play_button_sound_and_callback(callback))  # Обновленная строка
         button.setGeometry(x, y, w, h)
         button.setStyleSheet("""
             QPushButton {
@@ -148,6 +148,21 @@ class MainMenu(QWidget):
             }
         """)
         return button
+
+    def play_button_sound_and_callback(self, callback):
+        """
+        Воспроизведение звука кнопки и выполнение связанного действия.
+        """
+        if self.parent:
+            # Определяем, какую кнопку нажали
+            if callback.__name__ == "open_settings" or callback.__name__ == "open_leaderboard":
+                self.parent.play_select_sound()  # Звук для обычных кнопок
+            elif callback.__name__ == "exit_game":
+                self.parent.play_cancel_sound()  # Звук для кнопки "Выход"
+            else:
+                self.parent.play_select_sound()  # Звук по умолчанию
+
+        callback()  # Выполнение связанного действия
 
     def create_label(self, text, font_size=18, bold=False, x=0, y=0, w=200, h=50):
         label = QLabel(text, self)
