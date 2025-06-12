@@ -24,6 +24,7 @@ class GameEngine(QStackedWidget):
         # Загрузка путей к музыке
         self.menu_music_path = "assets/audio/menu_music.mp3"
         self.game_music_path = "assets/audio/game_music.mp3"
+        self.intro_music_path = "assets/audio/intro_music.mp3"
 
         # Установка начальной громкости
         initial_volume = self.settings.get("music_volume", 50)
@@ -32,8 +33,7 @@ class GameEngine(QStackedWidget):
         # Подключение сигналов
         self.currentChanged.connect(self.on_screen_changed)
 
-        # Воспроизведение музыки главного меню при запуске
-        self.play_music(self.menu_music_path)
+
 
     def init_screens(self):
         """Инициализация экранов."""
@@ -95,6 +95,18 @@ class GameEngine(QStackedWidget):
                 json.dump(self.settings, file, indent=4)
         except Exception as e:
             print(f"Ошибка сохранения настроек: {e}")
+
+    def play_intro_music(self):
+        """Воспроизведение музыки интро."""
+        print("Воспроизведение музыки интро...")
+        self.stop_music()  # Останавливаем любую текущую музыку
+        self.play_music(self.intro_music_path, loop=False)  # Запускаем intro_music без цикла
+
+    def stop_intro_music(self):
+        """Остановка музыки интро."""
+        print("Остановка музыки интро...")
+        if self.current_music == self.intro_music_path:
+            self.stop_music()
 
     def play_music(self, music_path, loop=True):
         try:
@@ -175,6 +187,10 @@ class GameEngine(QStackedWidget):
             # Если нужна своя музыка для таблицы рекордов, раскомментируйте следующие строки:
             # leaderboard_music_path = "assets/audio/leaderboard_music.mp3"
             # self.play_music(leaderboard_music_path)
+
+        # Останавливаем музыку интро при любом переключении экрана
+        if self.current_music == self.intro_music_path:
+            self.stop_intro_music()
 
     def toggle_fullscreen(self):
         """Переключение между полноэкранным и оконным режимом."""

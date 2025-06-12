@@ -450,7 +450,7 @@ class GameScreen(QWidget):
         :param time: Время прохождения (в секундах).
         """
         try:
-            with open("leaderboard.json", "r") as file:
+            with open("config/leaderboard.json", "r") as file:
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
@@ -460,7 +460,7 @@ class GameScreen(QWidget):
         records.sort()  # Сортировка по времени (лучшее время сверху)
         data[str(distance)] = records
 
-        with open("leaderboard.json", "w") as file:
+        with open("config/leaderboard.json", "w") as file:
             json.dump(data, file, indent=4)
 
     def show_victory(self):

@@ -69,7 +69,7 @@ class MainMenu(QWidget):
             widget.hide()
 
     def init_intro(self):
-        """Показ логотипа перед меню"""
+        """Показ логотипа перед меню."""
         self.logo_label = QLabel(self)
         if self.logo_pixmap.isNull():
             print("Ошибка: не удалось загрузить файл assets/textures/logo2.png")
@@ -79,12 +79,15 @@ class MainMenu(QWidget):
             self.logo_label.setGeometry(0, 0, self.width(), self.height())
             self.logo_label.setAlignment(Qt.AlignCenter)
             self.logo_label.show()
-            self.fade(self.logo_label, duration=4000)
+            self.fade(self.logo_label, duration=4500)
 
-        QTimer.singleShot(4000, self.finish_intro)
+        # Добавляем задержку перед воспроизведением музыки интро
+        QTimer.singleShot(10, lambda: self.parent.play_intro_music())
+
+        QTimer.singleShot(4500, self.finish_intro)
 
     def finish_intro(self):
-        """Завершение интро и показ меню"""
+        """Завершение интро и показ меню."""
         self.show_background = True
         self.background_label.setPixmap(
             self.background_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
@@ -107,6 +110,11 @@ class MainMenu(QWidget):
         ]:
             widget.show()
             self.fade(widget, duration=600)
+
+        # Остановка музыки интро и запуск музыки главного меню
+        if self.parent:
+            self.parent.stop_intro_music()
+            self.parent.play_music(self.parent.menu_music_path)
 
     def fade(self, widget, duration=500):
         effect = QGraphicsOpacityEffect(widget)
