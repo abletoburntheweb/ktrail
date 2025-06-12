@@ -15,9 +15,8 @@ class GameEngine(QStackedWidget):
         super().__init__()
         self.settings_file = "config/settings.json"
         self.settings = self.load_settings()
-        self.init_screens()
 
-        # Инициализация медиа-плеера
+        # Инициализация медиа-плеера для музыки
         self.media_player = QMediaPlayer()
         self.current_music = None
 
@@ -25,10 +24,9 @@ class GameEngine(QStackedWidget):
         self.menu_music_path = "assets/audio/menu_music.mp3"
         self.game_music_path = "assets/audio/game_music.mp3"
         self.intro_music_path = "assets/audio/intro_music.mp3"
-
         self.intro_music_volume = 5
 
-        # Установка начальной громкости
+        # Установка начальной громкости для музыки
         initial_volume = self.settings.get("music_volume", 50)
         self.media_player.setVolume(initial_volume)
 
@@ -37,14 +35,17 @@ class GameEngine(QStackedWidget):
         self.cancel_sound_path = "assets/audio/cancel_click.mp3"
 
         # Инициализация медиаплеера для звуковых эффектов
-        self.sound_player = QMediaPlayer()
+        self.sound_player = QMediaPlayer()  # Создаем sound_player
 
-        # Установка громкости звуковых эффектов
-        self.sound_volume = 80  # Пример значения громкости
-        self.sound_player.setVolume(self.sound_volume)
+        # Установка начальной громкости для звуковых эффектов
+        initial_effects_volume = self.settings.get("effects_volume", 80)
+        self.sound_player.setVolume(initial_effects_volume)  # Теперь это работает
 
         # Подключение сигналов
         self.currentChanged.connect(self.on_screen_changed)
+
+        # Инициализация экранов
+        self.init_screens()
 
 
 
@@ -92,11 +93,16 @@ class GameEngine(QStackedWidget):
         self.setCurrentWidget(self.main_menu)
 
     def load_settings(self):
-        default_settings = {"fullscreen": False, "music_volume": 50}
+        default_settings = {
+            "fullscreen": False,
+            "music_volume": 50,
+            "effects_volume": 80  # Добавляем значение по умолчанию для громкости звуковых эффектов
+        }
         try:
             with open(self.settings_file, "r") as file:
                 settings = json.load(file)
                 settings.setdefault("music_volume", 50)
+                settings.setdefault("effects_volume", 80)  # Устанавливаем значение по умолчанию
                 return settings
         except (json.JSONDecodeError, FileNotFoundError):
             print("Ошибка загрузки настроек. Используются настройки по умолчанию.")
