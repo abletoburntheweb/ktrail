@@ -26,6 +26,8 @@ class GameEngine(QStackedWidget):
         self.game_music_path = "assets/audio/game_music.mp3"
         self.intro_music_path = "assets/audio/intro_music.mp3"
 
+        self.intro_music_volume = 5
+
         # Установка начальной громкости
         initial_volume = self.settings.get("music_volume", 50)
         self.media_player.setVolume(initial_volume)
@@ -101,6 +103,7 @@ class GameEngine(QStackedWidget):
         print("Воспроизведение музыки интро...")
         self.stop_music()  # Останавливаем любую текущую музыку
         self.play_music(self.intro_music_path, loop=False)  # Запускаем intro_music без цикла
+        self.media_player.setVolume(self.intro_music_volume)
 
     def stop_intro_music(self):
         """Остановка музыки интро."""
