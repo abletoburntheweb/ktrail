@@ -9,7 +9,7 @@ class MainMenu(QWidget):
         super().__init__(parent)
         self.parent = parent
         self.background_pixmap = QPixmap("assets/textures/town.png")
-        self.logo_pixmap = QPixmap("assets/textures/logo.png")
+        self.logo_pixmap = QPixmap("assets/textures/logo2.png")
         self.b_x = 25
         self.b_y = 450
         self.logo_label = None
@@ -72,7 +72,7 @@ class MainMenu(QWidget):
         """Показ логотипа перед меню"""
         self.logo_label = QLabel(self)
         if self.logo_pixmap.isNull():
-            print("Ошибка: не удалось загрузить файл assets/textures/logo.png")
+            print("Ошибка: не удалось загрузить файл assets/textures/logo2.png")
         else:
             self.logo_label.setPixmap(
                 self.logo_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))

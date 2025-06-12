@@ -11,6 +11,7 @@ from engine.car import Car
 from engine.day_night import DayNightSystem
 from engine.player import Player
 from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower, StreetLamp
+from engine.powerups import SpeedBoost
 from engine.tile_manager import TileManager  # Новый менеджер тайлов
 
 
@@ -106,6 +107,13 @@ class GameScreen(QWidget):
         self.exposed_wire_spawn_timer.timeout.connect(self.spawn_exposed_wire)
         self.exposed_wire_spawn_timer.start(3000)  # Спавн каждые 3 секунды
 
+        self.active_powerups = []
+
+        # Таймер для спавна паверапов
+        self.powerup_spawn_timer = QTimer(self)
+        self.powerup_spawn_timer.timeout.connect(self.spawn_powerup)
+        self.powerup_spawn_timer.start(15000)  # Спавн каждые 15 секунд
+
         # Линии
         self.power_line = PowerLine(line_width=12, color="#89878c")
 
@@ -172,6 +180,15 @@ class GameScreen(QWidget):
             car = Car(self.width(), self.height())
             self.cars.append(car)
 
+    def spawn_powerup(self):
+        """
+        Генерация нового паверапа.
+        """
+        if not self.is_game_over:
+            powerup = SpeedBoost(screen_width=self.width(), screen_height=self.height())
+            self.active_powerups.append(powerup)
+
+
 
     def paintEvent(self, event):
         """Отрисовка всего игрового экрана"""
@@ -208,25 +225,30 @@ class GameScreen(QWidget):
         # 6. Отрисовка игрока
         painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
 
-
         # 7. Отрисовка препятствий
         for obstacle in self.obstacles:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
+
         # 8. Отрисовка опор ЛЭП
         for tower in self.transmission_towers:
             tower.draw(painter)
 
-        # 9. Отрисовка оголенного провода
+        # 9. Отрисовка паверапа скорости
+        for powerup in self.active_powerups:
+            painter.fillRect(powerup.get_rect(), QBrush(powerup.color))
+
+        # 10. Отрисовка оголенного провода
         for exposed_wire in self.exposed_wires:
             painter.fillRect(exposed_wire.get_rect(), QBrush(exposed_wire.color))
 
+        # 11. Отрисовка уличных фонарей
         for lamp in self.street_lamps:
             # Отрисовка самого фонаря
             painter.fillRect(lamp.get_rect(), QBrush(Qt.darkGray))
             # Отрисовка света фонаря
             lamp.draw_light(painter, self.height())
 
-        # 10. Фонарь при переходе ночи
+        # 12. Фонарь при переходе ночи
         if self.day_night.should_draw_light():
             light_pos = self.mapFromGlobal(self.cursor().pos())
             light_radius = 120
@@ -378,7 +400,6 @@ class GameScreen(QWidget):
         self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.exposed_wires)
 
-
         # Движение машин
         for car in self.cars:
             car.move()
@@ -388,6 +409,19 @@ class GameScreen(QWidget):
 
         # Проверка коллизий
         self.check_collisions()
+        # Движение паверапов
+        for powerup in self.active_powerups:
+            powerup.move()
+
+        # Проверка коллизий с игроком
+        player_rect = self.player.get_rect()
+        for powerup in self.active_powerups[:]:
+            if player_rect.intersects(powerup.get_rect()):
+                powerup.activate(self.player)  # Активируем паверап
+                self.active_powerups.remove(powerup)  # Удаляем паверап после активации
+
+        # Удаление ушедших за экран паверапов
+        self.active_powerups = [pu for pu in self.active_powerups if not pu.is_off_screen(self.height())]
 
         # Обновление позиций тайлов
         self.tile_manager.update_tiles(self.player.speed)
