@@ -14,6 +14,7 @@ class MainMenu(QWidget):
         self.b_y = 450
         self.logo_label = None
         self.background_label = QLabel(self)
+        self.is_intro_finished = False  # Флаг завершения интро
         self.init_ui()
         self.init_intro()
 
@@ -111,10 +112,15 @@ class MainMenu(QWidget):
             widget.show()
             self.fade(widget, duration=600)
 
-        # Остановка музыки интро и запуск музыки главного меню
+        # Останавливаем музыку интро
         if self.parent:
             self.parent.stop_intro_music()
-            self.parent.play_music(self.parent.menu_music_path)
+
+        # Устанавливаем флаг завершения интро
+        self.is_intro_finished = True
+
+        # Запускаем музыку главного меню с задержкой
+        QTimer.singleShot(500, lambda: self.parent.play_music(self.parent.menu_music_path))
 
     def fade(self, widget, duration=500):
         effect = QGraphicsOpacityEffect(widget)

@@ -206,8 +206,12 @@ class GameEngine(QStackedWidget):
 
     def on_screen_changed(self, index):
         current_widget = self.widget(index)
-
         if isinstance(current_widget, MainMenu):
+            # Проверяем, завершилось ли интро
+            if not current_widget.is_intro_finished:
+                print("Интро еще не завершено. Музыка главного меню не запускается.")
+                return
+
             # Проверяем, играет ли уже музыка главного меню
             if self.current_music != self.menu_music_path:
                 print("Переключение на музыку главного меню...")
@@ -215,7 +219,6 @@ class GameEngine(QStackedWidget):
                 self.play_music(self.menu_music_path)
             else:
                 print("Музыка главного меню уже играет.")
-
         elif isinstance(current_widget, GameScreen):
             # Проверяем, играет ли уже игровая музыка
             if self.current_music != self.game_music_path:
@@ -224,14 +227,12 @@ class GameEngine(QStackedWidget):
                 self.play_music(self.game_music_path)
             else:
                 print("Игровая музыка уже играет.")
-
         elif isinstance(current_widget, LeaderboardScreen):
             # При необходимости можно оставить текущую музыку или изменить её
             print("Переключение на экран таблицы рекордов...")
             # Если нужна своя музыка для таблицы рекордов, раскомментируйте следующие строки:
             # leaderboard_music_path = "assets/audio/leaderboard_music.mp3"
             # self.play_music(leaderboard_music_path)
-
         # Останавливаем музыку интро при любом переключении экрана
         if self.current_music == self.intro_music_path:
             self.stop_intro_music()
