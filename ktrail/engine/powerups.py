@@ -66,6 +66,7 @@ class SpeedBoost(PowerUp):
         super().__init__(screen_width, screen_height, size, duration)
         self.boost_amount = boost_amount
         self.original_speed_levels = None  # Для сохранения исходных уровней скорости
+        self.original_current_speed_index = None  # Для сохранения текущего индекса скорости
         self.color = QColor("#00FF00")  # Зеленый цвет
 
     def activate(self, player):
@@ -75,7 +76,9 @@ class SpeedBoost(PowerUp):
         """
         if not self.is_active:
             self.is_active = True
-            self.original_speed_levels = player.speed_levels[:]  # Сохраняем исходные уровни скорости
+            # Сохраняем исходные данные о скорости
+            self.original_speed_levels = player.speed_levels[:]
+            self.original_current_speed_index = player.current_speed_index  # Сохраняем текущий индекс
             # Устанавливаем фиксированную скорость 30 м/с
             player.speed_levels = [30]  # Только один уровень скорости
             player.current_speed_index = 0  # Фиксируем индекс скорости
@@ -94,7 +97,9 @@ class SpeedBoost(PowerUp):
             self.is_active = False
             # Восстанавливаем исходные уровни скорости
             player.speed_levels = self.original_speed_levels
-            player.current_speed_index = min(len(player.speed_levels) - 1, player.current_speed_index)
-            player.speed = player.speed_levels[player.current_speed_index]  # Обновляем текущую скорость
+            # Восстанавливаем исходный индекс скорости
+            player.current_speed_index = self.original_current_speed_index
+            # Обновляем текущую скорость на основе восстановленного индекса
+            player.speed = player.speed_levels[player.current_speed_index]
             player.can_change_speed = True  # Разблокируем изменение скорости
             self.timer.stop()
