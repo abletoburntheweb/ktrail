@@ -3,7 +3,7 @@ from random import choice
 from time import perf_counter
 
 from PyQt5.QtCore import Qt, QTimer, QRect
-from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont
 
 from engine.game_logic import GameEngine
@@ -60,6 +60,41 @@ class GameScreenDuo(QWidget):
         self.player1 = PlayerDuo(player_id=1, y=520)
         self.player2 = PlayerDuo(player_id=2, y=520)
 
+        # Прогресс-бар для шкалы КЗ левого игрока (синий)
+        self.short_circuit_bar_player1 = QProgressBar(self)
+        self.short_circuit_bar_player1.setGeometry(10, 10, 300, 20)  # Размеры прогресс-бара
+        self.short_circuit_bar_player1.setMaximum(100)  # Максимальное значение
+        self.short_circuit_bar_player1.setTextVisible(False)  # Отключаем текст
+        self.short_circuit_bar_player1.setStyleSheet("""
+                   QProgressBar {
+                       border: 1px solid white;
+                       border-radius: 5px;
+                       background-color: rgba(0, 0, 0, 100);
+                   }
+                   QProgressBar::chunk {
+                       background-color: blue;  /* Синий цвет для player1 */
+                       border-radius: 5px;
+                   }
+               """)
+        self.short_circuit_bar_player1.show()
+
+        # Прогресс-бар для шкалы КЗ правого игрока (красный)
+        self.short_circuit_bar_player2 = QProgressBar(self)
+        self.short_circuit_bar_player2.setGeometry(self.width() - 310, 10, 300, 20)  # Размеры прогресс-бара
+        self.short_circuit_bar_player2.setMaximum(100)  # Максимальное значение
+        self.short_circuit_bar_player2.setTextVisible(False)  # Отключаем текст
+        self.short_circuit_bar_player2.setStyleSheet("""
+                   QProgressBar {
+                       border: 1px solid white;
+                       border-radius: 5px;
+                       background-color: rgba(0, 0, 0, 100);
+                   }
+                   QProgressBar::chunk {
+                       background-color: red;  /* Красный цвет для player2 */
+                       border-radius: 5px;
+                   }
+               """)
+        self.short_circuit_bar_player2.show()
         # Линии
         self.power_line_duo = PowerLineDuo(line_width=12, color="#89878c")
 
@@ -297,6 +332,10 @@ class GameScreenDuo(QWidget):
         painter.setFont(QFont("Arial", 20))
         painter.drawText(10, 60, f"Скорость: {speed_player2}")
 
+        # Обновление прогресс-баров
+        self.short_circuit_bar_player1.setValue(int(self.player1.get_short_circuit_level()))
+        self.short_circuit_bar_player2.setValue(int(self.player2.get_short_circuit_level()))
+
     def update_fps_visibility(self, visible):
         """Обновляет видимость FPS."""
         self.show_fps = visible
@@ -470,8 +509,21 @@ class GameScreenDuo(QWidget):
         return current_trail_x
 
     def check_collisions(self):
+        """Проверка коллизий."""
         p1_rect = self.player1.get_rect()
         p2_rect = self.player2.get_rect()
+
+        # Проверка переполнения шкалы КЗ для player1
+        if self.player1.get_short_circuit_level() >= self.player1.short_circuit_max:
+            self.show_game_over("Игрок 1 проиграл из-за короткого замыкания!")
+            return
+
+        # Проверка переполнения шкалы КЗ для player2
+        if self.player2.get_short_circuit_level() >= self.player2.short_circuit_max:
+            self.show_game_over("Игрок 2 проиграл из-за короткого замыкания!")
+            return
+
+        # ... (остальная проверка коллизий)
 
         # Проверка столкновений для player1
         for obstacle in self.obstacles1:
@@ -516,10 +568,14 @@ class GameScreenDuo(QWidget):
         """Сброс состояния игры и полный рестарт."""
         self.player1 = PlayerDuo(player_id=1)
         self.player2 = PlayerDuo(player_id=2)
+
+        # Очистка списков объектов
         self.trail1.clear()
         self.trail2.clear()
-        self.obstacles1.clear()  # Очищаем препятствия для player1
-        self.obstacles2.clear()  # Очищаем препятствия для player2
+        self.obstacles1.clear()  # Препятствия для player1
+        self.obstacles2.clear()  # Препятствия для player2
+
+        # Сброс параметров игры
         self.is_game_over = False
         self.distance_traveled = 0
         self.tile_manager.init_tiles()
@@ -530,6 +586,10 @@ class GameScreenDuo(QWidget):
         self.obstacle_spawn_timer1.start(2000)  # Спавн каждые 2 секунды для player1
         self.obstacle_spawn_timer2.start(2000)  # Спавн каждые 2 секунды для player2
         self.time_timer.start(self.day_night.tick_interval_ms)  # Таймер дня/ночи
+
+        # Сброс шкалы КЗ
+        self.short_circuit_bar_player1.setValue(0)
+        self.short_circuit_bar_player2.setValue(0)
 
     def toggle_pause(self):
         if hasattr(self, "is_paused"):
