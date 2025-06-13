@@ -7,9 +7,8 @@ from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont
 
 from engine.game_logic import GameEngine
-from engine.obstacle import TransmissionTower, StreetLamp, ExposedWire
 from engine.player_duo import PlayerDuo
-from engine.obstacle_duo import ObstacleDuo, PowerLineDuo
+from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, StreetLampDuo, ExposedWireDuo
 from engine.day_night import DayNightSystem
 from engine.tile_manager_duo import TileManagerDuo
 
@@ -20,7 +19,8 @@ class GameScreenDuo(QWidget):
         self.parent = parent
         self.day_night = DayNightSystem()
         self.target_distance = 1000
-        self.distance_traveled = 0
+        self.distance_traveled_player1 = 0
+        self.distance_traveled_player2 = 0
         self.meters_per_frame = 0.1
         self.speed_to_meters_coefficient = 0.01  # Добавьте эту строку
         self.speed = 10  # Общая скорость для обоих игроков
@@ -144,12 +144,11 @@ class GameScreenDuo(QWidget):
         # Таймеры спавна опор ЛЭП
         self.tower_spawn_timer1 = QTimer(self)
         self.tower_spawn_timer1.timeout.connect(self.spawn_transmission_tower1)
+        self.tower_spawn_timer1.start(3000)  # Спавн каждые 3 секунды для player1
+
         self.tower_spawn_timer2 = QTimer(self)
         self.tower_spawn_timer2.timeout.connect(self.spawn_transmission_tower2)
-
-        # Запуск таймеров при старте игры
-        self.tower_spawn_timer1.start(8000)  # Спавн каждые 8 секунд для player1
-        self.tower_spawn_timer2.start(8000)  # Спавн каждые 8 секунд для player2
+        self.tower_spawn_timer2.start(3000)  # Спавн каждые 3 секунды для player2
 
         # Таймеры спавна фонарей
         self.lamp_spawn_timer1 = QTimer(self)
@@ -208,23 +207,23 @@ class GameScreenDuo(QWidget):
     def spawn_transmission_tower1(self):
         """Генерация новой опоры ЛЭП для player1."""
         if not self.is_game_over:
-            tower = TransmissionTower(screen_height=self.height())
-            tower.x_positions = [600, 700, 800]  # Левая сторона
-            tower.x = choice(tower.x_positions)
+            tower = TransmissionTowerDuo(screen_height=self.height())
+            # Выбираем случайную позицию из x_positions игрока 1
+            tower.x = choice([600, 700, 800])  # Только левая сторона
             self.transmission_towers1.append(tower)
 
     def spawn_transmission_tower2(self):
         """Генерация новой опоры ЛЭП для player2."""
         if not self.is_game_over:
-            tower = TransmissionTower(screen_height=self.height())
-            tower.x_positions = [1100, 1200, 1300]  # Правая сторона
-            tower.x = choice(tower.x_positions)
+            tower = TransmissionTowerDuo(screen_height=self.height())
+            # Выбираем случайную позицию из x_positions игрока 2
+            tower.x = choice([1100, 1200, 1300])  # Только правая сторона
             self.transmission_towers2.append(tower)
 
     def spawn_exposed_wire1(self):
         """Генерация нового оголенного провода для player1."""
         if not self.is_game_over:
-            wire = ExposedWire(self.width(), self.height())
+            wire = ExposedWireDuo(self.width(), self.height())
             wire.x_positions = [600, 700, 800]  # Левая сторона
             wire.x = choice(wire.x_positions)
             self.exposed_wires1.append(wire)
@@ -232,7 +231,7 @@ class GameScreenDuo(QWidget):
     def spawn_exposed_wire2(self):
         """Генерация нового оголенного провода для player2."""
         if not self.is_game_over:
-            wire = ExposedWire(self.width(), self.height())
+            wire = ExposedWireDuo(self.width(), self.height())
             wire.x_positions = [1100, 1200, 1300]  # Правая сторона
             wire.x = choice(wire.x_positions)
             self.exposed_wires2.append(wire)
@@ -241,7 +240,7 @@ class GameScreenDuo(QWidget):
     def spawn_street_lamp1(self):
         """Генерация нового фонаря для player1."""
         if not self.is_game_over:
-            lamp = StreetLamp(self.width(), self.height())
+            lamp = StreetLampDuo(self.width(), self.height())
             lamp.x_positions = [600, 700, 800]  # Левая сторона
             lamp.x = choice(lamp.x_positions)
             self.street_lamps1.append(lamp)
@@ -249,59 +248,66 @@ class GameScreenDuo(QWidget):
     def spawn_street_lamp2(self):
         """Генерация нового фонаря для player2."""
         if not self.is_game_over:
-            lamp = StreetLamp(self.width(), self.height())
+            lamp = StreetLampDuo(self.width(), self.height())
             lamp.x_positions = [1100, 1200, 1300]  # Правая сторона
             lamp.x = choice(lamp.x_positions)
             self.street_lamps2.append(lamp)
 
     def paintEvent(self, event):
         painter = QPainter(self)
+
         # Рисуем дорогу
         self.tile_manager.draw_tiles(painter)
+
         # Накладываем градиент дня/ночи
         gradient = self.day_night.get_background_gradient(self.height())
         painter.setBrush(gradient)
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.rect())
+
         # Рисуем линии движения
         self.power_line_duo.draw(painter, self.height())
+
         # Рисуем трейлы
         self.draw_trail(painter, self.trail1, self.trail_color1)
         self.draw_trail(painter, self.trail2, self.trail_color2)
+
         # Рисуем разделитель
         separator_width = 50  # Ширина разделителя
         separator_x = self.width() // 2 - separator_width // 2  # Центр экрана
         separator_rect = QRect(separator_x, 0, separator_width, self.height())
         painter.fillRect(separator_rect, QBrush(QColor(128, 128, 128)))  # Серый цвет
+
         # Рисуем игроков
         painter.fillRect(self.player1.get_rect(), QBrush(Qt.red))
         painter.fillRect(self.player2.get_rect(), QBrush(Qt.blue))
-        # Рисуем препятствия для player1
+
+        # Рисуем препятствия для player1 и player2
         for obstacle in self.obstacles1:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
-        # Рисуем препятствия для player2
         for obstacle in self.obstacles2:
             painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
-        # Рисуем опоры ЛЭП для player1
+
+        # Рисуем опоры ЛЭП для player1 и player2
         for tower in self.transmission_towers1:
             tower.draw(painter)
-        # Рисуем опоры ЛЭП для player2
         for tower in self.transmission_towers2:
             tower.draw(painter)
-        # Рисуем фонари для player1
+
+        # Рисуем фонари для player1 и player2
         for lamp in self.street_lamps1:
             painter.fillRect(lamp.get_rect(), QBrush(Qt.darkGray))  # Основа фонаря
             lamp.draw_light(painter, self.height())  # Свет фонаря
-        # Рисуем фонари для player2
         for lamp in self.street_lamps2:
             painter.fillRect(lamp.get_rect(), QBrush(Qt.darkGray))  # Основа фонаря
             lamp.draw_light(painter, self.height())  # Свет фонаря
-        # Рисуем оголенные провода для player1
+
+        # Рисуем оголенные провода для player1 и player2
         for wire in self.exposed_wires1:
             painter.fillRect(wire.get_rect(), QBrush(wire.color))
-        # Рисуем оголенные провода для player2
         for wire in self.exposed_wires2:
             painter.fillRect(wire.get_rect(), QBrush(wire.color))
+
         # Фонарь ночью
         if self.day_night.should_draw_light():
             light_pos = self.mapFromGlobal(self.cursor().pos())
@@ -312,25 +318,39 @@ class GameScreenDuo(QWidget):
             painter.setBrush(lg)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(light_pos, light_radius, light_radius)
-        # Статистика
-        painter.setPen(QColor(255, 255, 255))
-        text = f"Пройдено: {int(self.distance_traveled)} м / {self.target_distance} м"
-        painter.drawText(1700, 50, text)
+
         # Отображение FPS
         if self.show_fps:
             painter.setPen(QColor(255, 255, 255))
             fps_text = f"FPS: {self.fps:.1f}"
             painter.drawText(10, 30, fps_text)
-        # Отображение скорости для player1 (красный, верхний правый угол)
-        speed_player1 = self.player1.get_current_speed()
+
+        # Отображение пройденного пути для player1 (красный, верхний правый угол)
+        painter.setFont(QFont("Arial", 20))  # Определяем размер шрифта
         painter.setPen(self.trail_color2)  # Красный цвет трейла
-        painter.setFont(QFont("Arial", 20))
-        painter.drawText(self.width() - 250, 30, f"Скорость: {speed_player1}")
-        # Отображение скорости для player2 (синий, верхний левый угол)
-        speed_player2 = self.player2.get_current_speed()
+
+        # Пройденное расстояние для player1
+        text_player1 = f"Пройдено: {int(self.distance_traveled_player1)} м / {self.target_distance} м"
+        text_width_player1 = painter.fontMetrics().width(text_player1)
+        painter.drawText(self.width() - text_width_player1 - 20, 50, text_player1)
+
+        # Скорость для player1
+        speed_player1 = self.player1.get_current_speed()
+        speed_text_player1 = f"Скорость: {speed_player1} м/с"
+        speed_text_width_player1 = painter.fontMetrics().width(speed_text_player1)
+        painter.drawText(self.width() - speed_text_width_player1 - 20, 80, speed_text_player1)
+
+        # Отображение пройденного пути для player2 (синий, верхний левый угол)
         painter.setPen(self.trail_color1)  # Синий цвет трейла
-        painter.setFont(QFont("Arial", 20))
-        painter.drawText(10, 60, f"Скорость: {speed_player2}")
+
+        # Пройденное расстояние для player2
+        text_player2 = f"Пройдено: {int(self.distance_traveled_player2)} м / {self.target_distance} м"
+        painter.drawText(10, 50, text_player2)
+
+        # Скорость для player2
+        speed_player2 = self.player2.get_current_speed()
+        speed_text_player2 = f"Скорость: {speed_player2} м/с"
+        painter.drawText(10, 80, speed_text_player2)
 
         # Обновление прогресс-баров
         self.short_circuit_bar_player1.setValue(int(self.player1.get_short_circuit_level()))
@@ -384,6 +404,7 @@ class GameScreenDuo(QWidget):
         self.obstacle_spawn_timer2.start(2000)  # Спавн каждые 2 секунды для player2
 
     def update_game(self):
+        """Обновление состояния игры."""
         if self.is_game_over:
             return
 
@@ -391,14 +412,18 @@ class GameScreenDuo(QWidget):
         speed_player1 = self.player1.get_current_speed()
         speed_player2 = self.player2.get_current_speed()
 
-        # Обновление пройденного расстояния
+        # Обновление пройденного расстояния для каждого игрока
         meters_this_frame_player1 = speed_player1 * self.speed_to_meters_coefficient
         meters_this_frame_player2 = speed_player2 * self.speed_to_meters_coefficient
-        self.distance_traveled += max(meters_this_frame_player1, meters_this_frame_player2)
+        self.distance_traveled_player1 += meters_this_frame_player1
+        self.distance_traveled_player2 += meters_this_frame_player2
 
         # Проверка достижения целевой дистанции
-        if self.distance_traveled >= self.target_distance:
-            self.show_victory()
+        if self.distance_traveled_player1 >= self.target_distance:
+            self.show_victory(winner="Игрок 1")
+            return
+        elif self.distance_traveled_player2 >= self.target_distance:
+            self.show_victory(winner="Игрок 2")
             return
 
         # Обновление трейлов для обоих игроков
@@ -433,7 +458,7 @@ class GameScreenDuo(QWidget):
         for tower in self.transmission_towers2:
             tower.move(self.player2.get_current_speed())
 
-            # Удаление ушедших за экран опор ЛЭП
+        # Удаление ушедших за экран опор ЛЭП
         self.transmission_towers1 = [tower for tower in self.transmission_towers1 if not tower.is_off_screen()]
         self.transmission_towers2 = [tower for tower in self.transmission_towers2 if not tower.is_off_screen()]
 
@@ -442,7 +467,7 @@ class GameScreenDuo(QWidget):
         for wire in self.exposed_wires2:
             wire.move()
 
-            # Удаление ушедших за экран оголенных проводов
+        # Удаление ушедших за экран оголенных проводов
         self.exposed_wires1 = [wire for wire in self.exposed_wires1 if not wire.is_off_screen(540)]
         self.exposed_wires2 = [wire for wire in self.exposed_wires2 if not wire.is_off_screen(540)]
 
@@ -453,7 +478,7 @@ class GameScreenDuo(QWidget):
             lamp.move()
             lamp.update_light_state(self.day_night)
 
-            # Удаление ушедших за экран фонарей
+        # Удаление ушедших за экран фонарей
         self.street_lamps1 = [lamp for lamp in self.street_lamps1 if not lamp.is_off_screen(540)]
         self.street_lamps2 = [lamp for lamp in self.street_lamps2 if not lamp.is_off_screen(540)]
 
@@ -539,16 +564,27 @@ class GameScreenDuo(QWidget):
                 self.show_game_over("Игрок 2 проиграл!")
                 return
 
-    def show_victory(self):
+    def show_victory(self, winner=""):
+        """Показ экрана победы."""
         self.is_game_over = True
         self.timer.stop()
+        self.obstacle_spawn_timer1.stop()
+        self.obstacle_spawn_timer2.stop()
+        self.time_timer.stop()
+
         msg = QMessageBox()
         msg.setWindowTitle("Победа!")
-        msg.setText(f"Вы оба проехали {int(self.target_distance)} метров!")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec_()
-        if self.parent:
-            self.parent.setCurrentWidget(self.parent.main_menu)
+        msg.setText(f"{winner} первым достиг цели!")
+        msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
+        msg.setIcon(QMessageBox.Information)
+        choice = msg.exec_()
+
+        if choice == QMessageBox.Retry:
+            self.reset_game()
+            self.update()
+        else:
+            if self.parent:
+                self.parent.setCurrentWidget(self.parent.main_menu)
 
     def show_game_over(self, message="Кто-то проиграл"):
         self.is_game_over = True
@@ -577,7 +613,8 @@ class GameScreenDuo(QWidget):
 
         # Сброс параметров игры
         self.is_game_over = False
-        self.distance_traveled = 0
+        self.distance_traveled_player1 = 0
+        self.distance_traveled_player2 = 0
         self.tile_manager.init_tiles()
         self.day_night.current_tick = 8200
 
