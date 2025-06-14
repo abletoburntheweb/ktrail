@@ -44,6 +44,14 @@ class PlayerDuo:
         self.short_circuit_timer.timeout.connect(self.update_short_circuit)
         self.short_circuit_timer.start(100)  # Обновление каждые 100 мс
 
+        self.is_invincible = False  # Флаг неуязвимости
+        self.invincibility_timer = QTimer()  # Таймер для отслеживания времени неуязвимости
+        self.invincibility_timer.timeout.connect(self.disable_invincibility)
+        self.blink_timer = QTimer()  # Таймер для мигания
+        self.blink_timer.timeout.connect(self.toggle_visibility)
+        self.is_visible = True  # Флаг видимости для мигания
+        self.distance_penalty = 0  # Штраф за столкновение (в метрах)
+
     def move(self, key):
         """Обработка движения игрока."""
         if key == self.controls['left']:  # Движение влево
@@ -105,8 +113,36 @@ class PlayerDuo:
         # Защита от выхода за границы
         self.short_circuit_level = max(0, min(self.short_circuit_max, self.short_circuit_level))
 
+        # Если уровень КЗ достиг максимума, активируем штраф
+        if self.short_circuit_level >= self.short_circuit_max:
+            self.distance_penalty = 20  # Устанавливаем штраф
+            self.enable_invincibility(5000)  # Включаем неуязвимость на 5 секунд
+
     def get_short_circuit_level(self):
         """
         Возвращает текущий уровень КЗ.
         """
         return self.short_circuit_level
+
+    def enable_invincibility(self, duration=5000):
+        """Включает неуязвимость на указанное время (в миллисекундах)."""
+        self.is_invincible = True
+        self.invincibility_timer.start(duration)
+        self.blink_timer.start(200)  # Мигание каждые 200 мс
+
+    def disable_invincibility(self):
+        """Отключает неуязвимость."""
+        self.is_invincible = False
+        self.invincibility_timer.stop()
+        self.blink_timer.stop()
+        self.is_visible = True  # Восстанавливаем видимость
+
+    def toggle_visibility(self):
+        """Переключает видимость игрока для эффекта мигания."""
+        self.is_visible = not self.is_visible
+
+    def apply_collision_penalty(self, penalty=20):
+        """Применяет штраф за столкновение."""
+        self.distance_penalty += penalty
+        self.current_speed_index = 2  # Сбрасываем скорость до стандартной (3-й уровень)
+        self.speed = self.speed_levels[self.current_speed_index]

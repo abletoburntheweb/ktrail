@@ -288,9 +288,10 @@ class GameScreenDuo(QWidget):
         separator_rect = QRect(separator_x, 0, separator_width, self.height())
         painter.fillRect(separator_rect, QBrush(QColor(128, 128, 128)))  # Серый цвет
 
-        # Рисуем игроков
-        painter.fillRect(self.player1.get_rect(), QBrush(Qt.red))
-        painter.fillRect(self.player2.get_rect(), QBrush(Qt.blue))
+        if self.player1.is_visible:
+            painter.fillRect(self.player1.get_rect(), QBrush(Qt.red))
+        if self.player2.is_visible:
+            painter.fillRect(self.player2.get_rect(), QBrush(Qt.blue))
 
         # Отрисовка прямоугольников коллизий для игроков
         painter.setPen(Qt.red)
@@ -435,8 +436,16 @@ class GameScreenDuo(QWidget):
         # Обновление пройденного расстояния для каждого игрока
         meters_this_frame_player1 = speed_player1 * self.speed_to_meters_coefficient
         meters_this_frame_player2 = speed_player2 * self.speed_to_meters_coefficient
-        self.distance_traveled_player1 += meters_this_frame_player1
-        self.distance_traveled_player2 += meters_this_frame_player2
+
+        # Учитываем штраф за столкновение или переполнение КЗ
+        self.distance_traveled_player1 = max(0,
+                                             self.distance_traveled_player1 + meters_this_frame_player1 - self.player1.distance_penalty)
+        self.distance_traveled_player2 = max(0,
+                                             self.distance_traveled_player2 + meters_this_frame_player2 - self.player2.distance_penalty)
+
+        # Сбрасываем штраф после применения
+        self.player1.distance_penalty = 0
+        self.player2.distance_penalty = 0
 
         # Проверка достижения целевой дистанции
         if self.distance_traveled_player1 >= self.target_distance:
@@ -558,43 +567,51 @@ class GameScreenDuo(QWidget):
         p1_rect = self.player1.get_rect()
         p2_rect = self.player2.get_rect()
 
-        # Проверка переполнения шкалы КЗ
+        # Проверка переполнения шкалы КЗ для player1
         if self.player1.get_short_circuit_level() >= self.player1.short_circuit_max:
-            self.show_game_over("Игрок 1 проиграл из-за короткого замыкания!")
+            self.handle_collision(self.player1, self.distance_traveled_player1, 20)
             return
+
+        # Проверка переполнения шкалы КЗ для player2
         if self.player2.get_short_circuit_level() >= self.player2.short_circuit_max:
-            self.show_game_over("Игрок 2 проиграл из-за короткого замыкания!")
+            self.handle_collision(self.player2, self.distance_traveled_player2, 20)
             return
 
         # Проверка столкновений для player1
         for obstacle in self.obstacles1[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
-            if p1_rect.intersects(rect):
-                self.show_game_over("Игрок 1 проиграл!")
+            if p1_rect.intersects(rect) and not self.player1.is_invincible:
+                self.handle_collision(self.player1, self.distance_traveled_player1, 20)
                 self.obstacles1.remove(obstacle)  # Удаляем препятствие
-                return
+                break
 
         for wire in self.exposed_wires1[:]:  # Используем копию списка для безопасного удаления
             rect = wire.get_rect()
-            if p1_rect.intersects(rect):
-                self.show_game_over("Игрок 1 проиграл!")
+            if p1_rect.intersects(rect) and not self.player1.is_invincible:
+                self.handle_collision(self.player1, self.distance_traveled_player1, 20)
                 self.exposed_wires1.remove(wire)  # Удаляем оголенный провод
-                return
+                break
 
         # Проверка столкновений для player2
         for obstacle in self.obstacles2[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
-            if p2_rect.intersects(rect):
-                self.show_game_over("Игрок 2 проиграл!")
+            if p2_rect.intersects(rect) and not self.player2.is_invincible:
+                self.handle_collision(self.player2, self.distance_traveled_player2, 20)
                 self.obstacles2.remove(obstacle)  # Удаляем препятствие
-                return
+                break
 
         for wire in self.exposed_wires2[:]:  # Используем копию списка для безопасного удаления
             rect = wire.get_rect()
-            if p2_rect.intersects(rect):
-                self.show_game_over("Игрок 2 проиграл!")
+            if p2_rect.intersects(rect) and not self.player2.is_invincible:
+                self.handle_collision(self.player2, self.distance_traveled_player2, 20)
                 self.exposed_wires2.remove(wire)  # Удаляем оголенный провод
-                return
+                break
+
+    def handle_collision(self, player, distance_traveled, penalty):
+        """Обработка столкновения для указанного игрока."""
+        player.apply_collision_penalty(penalty)  # Применяем штраф
+        distance_traveled -= penalty  # Отбрасываем игрока назад
+        player.enable_invincibility(5000)  # Включаем неуязвимость на 5 секунд
 
     def show_victory(self, winner=""):
         """Показ экрана победы."""
