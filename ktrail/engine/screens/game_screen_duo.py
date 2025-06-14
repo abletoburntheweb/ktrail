@@ -194,47 +194,57 @@ class GameScreenDuo(QWidget):
         """Генерация нового препятствия для player1."""
         if not self.is_game_over:
             obstacle = ObstacleDuo()
-            obstacle.x = choice([600, 700, 800])  # Только левая сторона
+            obstacle.x = choice([1100, 1200, 1300])  # Правая сторона для player1
             self.obstacles1.append(obstacle)
 
     def spawn_obstacle2(self):
         """Генерация нового препятствия для player2."""
         if not self.is_game_over:
             obstacle = ObstacleDuo()
-            obstacle.x = choice([1100, 1200, 1300])  # Только правая сторона
+            obstacle.x = choice([600, 700, 800])  # Левая сторона для player2
             self.obstacles2.append(obstacle)
-
-    def spawn_transmission_tower1(self):
-        """Генерация новой опоры ЛЭП для player1."""
-        if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height())
-            # Выбираем случайную позицию из x_positions игрока 1
-            tower.x = choice([600, 700, 800])  # Только левая сторона
-            self.transmission_towers1.append(tower)
-
-    def spawn_transmission_tower2(self):
-        """Генерация новой опоры ЛЭП для player2."""
-        if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height())
-            # Выбираем случайную позицию из x_positions игрока 2
-            tower.x = choice([1100, 1200, 1300])  # Только правая сторона
-            self.transmission_towers2.append(tower)
 
     def spawn_exposed_wire1(self):
         """Генерация нового оголенного провода для player1."""
         if not self.is_game_over:
             wire = ExposedWireDuo(self.width(), self.height())
-            wire.x_positions = [600, 700, 800]  # Левая сторона
-            wire.x = choice(wire.x_positions)
+            wire.x = choice([1100, 1200, 1300])  # Правая сторона для player1
             self.exposed_wires1.append(wire)
 
     def spawn_exposed_wire2(self):
         """Генерация нового оголенного провода для player2."""
         if not self.is_game_over:
             wire = ExposedWireDuo(self.width(), self.height())
-            wire.x_positions = [1100, 1200, 1300]  # Правая сторона
-            wire.x = choice(wire.x_positions)
+            wire.x = choice([600, 700, 800])  # Левая сторона для player2
             self.exposed_wires2.append(wire)
+
+    def spawn_transmission_tower1(self):
+        """Генерация новой опоры ЛЭП для player1."""
+        if not self.is_game_over:
+            tower = TransmissionTowerDuo(screen_height=self.height())
+            tower.x = choice([1100, 1200, 1300])  # Правая сторона для player1
+            self.transmission_towers1.append(tower)
+
+    def spawn_transmission_tower2(self):
+        """Генерация новой опоры ЛЭП для player2."""
+        if not self.is_game_over:
+            tower = TransmissionTowerDuo(screen_height=self.height())
+            tower.x = choice([600, 700, 800])  # Левая сторона для player2
+            self.transmission_towers2.append(tower)
+
+    def spawn_street_lamp1(self):
+        """Генерация нового фонаря для player1."""
+        if not self.is_game_over:
+            lamp = StreetLampDuo(self.width(), self.height())
+            lamp.x = choice([1100, 1200, 1300])  # Левая сторона для player1
+            self.street_lamps1.append(lamp)
+
+    def spawn_street_lamp2(self):
+        """Генерация нового фонаря для player2."""
+        if not self.is_game_over:
+            lamp = StreetLampDuo(self.width(), self.height())
+            lamp.x = choice([600, 700, 800])  # Правая сторона для player2
+            self.street_lamps2.append(lamp)
 
 
     def spawn_street_lamp1(self):
@@ -281,6 +291,16 @@ class GameScreenDuo(QWidget):
         # Рисуем игроков
         painter.fillRect(self.player1.get_rect(), QBrush(Qt.red))
         painter.fillRect(self.player2.get_rect(), QBrush(Qt.blue))
+
+        # Отрисовка прямоугольников коллизий для игроков
+        painter.setPen(Qt.red)
+        painter.drawRect(self.player1.get_rect())
+        painter.drawRect(self.player2.get_rect())
+
+        # Отрисовка прямоугольников коллизий для препятствий УДАЛИТЬ ПОЗЖЕ
+        painter.setPen(Qt.blue)
+        for obstacle in self.obstacles1 + self.obstacles2:
+            painter.drawRect(obstacle.get_rect())
 
         # Рисуем препятствия для player1 и player2
         for obstacle in self.obstacles1:
@@ -538,30 +558,42 @@ class GameScreenDuo(QWidget):
         p1_rect = self.player1.get_rect()
         p2_rect = self.player2.get_rect()
 
-        # Проверка переполнения шкалы КЗ для player1
+        # Проверка переполнения шкалы КЗ
         if self.player1.get_short_circuit_level() >= self.player1.short_circuit_max:
             self.show_game_over("Игрок 1 проиграл из-за короткого замыкания!")
             return
-
-        # Проверка переполнения шкалы КЗ для player2
         if self.player2.get_short_circuit_level() >= self.player2.short_circuit_max:
             self.show_game_over("Игрок 2 проиграл из-за короткого замыкания!")
             return
 
-        # ... (остальная проверка коллизий)
-
         # Проверка столкновений для player1
-        for obstacle in self.obstacles1:
+        for obstacle in self.obstacles1[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
             if p1_rect.intersects(rect):
                 self.show_game_over("Игрок 1 проиграл!")
+                self.obstacles1.remove(obstacle)  # Удаляем препятствие
+                return
+
+        for wire in self.exposed_wires1[:]:  # Используем копию списка для безопасного удаления
+            rect = wire.get_rect()
+            if p1_rect.intersects(rect):
+                self.show_game_over("Игрок 1 проиграл!")
+                self.exposed_wires1.remove(wire)  # Удаляем оголенный провод
                 return
 
         # Проверка столкновений для player2
-        for obstacle in self.obstacles2:
+        for obstacle in self.obstacles2[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
             if p2_rect.intersects(rect):
                 self.show_game_over("Игрок 2 проиграл!")
+                self.obstacles2.remove(obstacle)  # Удаляем препятствие
+                return
+
+        for wire in self.exposed_wires2[:]:  # Используем копию списка для безопасного удаления
+            rect = wire.get_rect()
+            if p2_rect.intersects(rect):
+                self.show_game_over("Игрок 2 проиграл!")
+                self.exposed_wires2.remove(wire)  # Удаляем оголенный провод
                 return
 
     def show_victory(self, winner=""):
@@ -587,13 +619,19 @@ class GameScreenDuo(QWidget):
                 self.parent.setCurrentWidget(self.parent.main_menu)
 
     def show_game_over(self, message="Кто-то проиграл"):
+        """Показ экрана 'Конец игры'."""
         self.is_game_over = True
         self.timer.stop()
+        self.obstacle_spawn_timer1.stop()
+        self.obstacle_spawn_timer2.stop()
+        self.time_timer.stop()
+
         msg = QMessageBox()
         msg.setWindowTitle("Конец игры")
         msg.setText(message)
         msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
         choice = msg.exec_()
+
         if choice == QMessageBox.Retry:
             self.reset_game()
         else:
