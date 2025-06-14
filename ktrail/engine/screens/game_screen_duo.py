@@ -688,9 +688,11 @@ class GameScreenDuo(QWidget):
             self.is_paused = not self.is_paused
         else:
             self.is_paused = True
+
         if self.is_paused:
             self.timer.stop()
             if self.parent:
+                self.parent.main_menu.current_mode = "duo"
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         else:
             self.timer.start(16)

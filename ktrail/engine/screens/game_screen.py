@@ -587,6 +587,7 @@ class GameScreen(QWidget):
         if self.is_paused:
             self.timer.stop()
             if self.parent:
+                self.parent.main_menu.current_mode = "single"  # Сохраняем текущий режим
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         else:
             self.timer.start(16)

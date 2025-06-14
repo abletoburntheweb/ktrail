@@ -8,6 +8,7 @@ class MainMenu(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.current_mode = None
         self.background_pixmap = QPixmap("assets/textures/town.png")
         self.logo_pixmap = QPixmap("assets/textures/logo2.png")
         self.b_x = 25
@@ -186,6 +187,7 @@ class MainMenu(QWidget):
         self.disable_buttons()
         self.parent.distance_selection.is_duo = False
         self.animate_left_panel_out()
+        self.current_mode = "single"  # Устанавливаем режим на одиночный
 
     def animate_left_panel_out(self):
         widgets_to_move = [
@@ -229,13 +231,12 @@ class MainMenu(QWidget):
             background_path=screen_pixmap  # Передаём pixmap напрямую
         )
 
-
-
     def start_duo(self):
         print("Переход к дуо...")
         self.disable_buttons()
         self.animate_left_panel_out()
         self.parent.distance_selection.is_duo = True
+        self.current_mode = "duo"  # Устанавливаем режим на дуо
 
     def open_leaderboard(self):
         print("Открытие таблицы рекордов...")

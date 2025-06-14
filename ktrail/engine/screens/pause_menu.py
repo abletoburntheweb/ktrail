@@ -47,9 +47,18 @@ class PauseMenu(QWidget):
         print("Продолжение игры...")
         if self.parent:
             self.parent.play_select_sound()  # Звуковой эффект select_click
-        if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
-            self.parent.game_screen.toggle_pause()
-            self.parent.setCurrentWidget(self.parent.game_screen)
+
+        # Проверяем текущий режим игры
+        if self.parent.main_menu.current_mode == "duo":
+            # Если текущий режим — дуо
+            if hasattr(self.parent.game_screen_duo, "toggle_pause"):
+                self.parent.game_screen_duo.toggle_pause()
+                self.parent.setCurrentWidget(self.parent.game_screen_duo)
+        else:
+            # Если текущий режим — одиночный
+            if hasattr(self.parent.game_screen, "toggle_pause"):
+                self.parent.game_screen.toggle_pause()
+                self.parent.setCurrentWidget(self.parent.game_screen)
 
     def open_settings(self):
         """Открыть меню настроек."""
