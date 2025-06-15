@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QParallelAnimationGroup, QPointF
 from engine.rotating_panel import RotatingPanel
+from engine.screens.leaderboard_screen import LeaderboardScreen
 from engine.screens.settings_menu import SettingsMenu
 
 
@@ -11,6 +12,10 @@ class MainMenu(QWidget):
         self.parent = parent
         self.overlay = None  # Прозрачный слой для модального окна
         self.settings_menu = None  # Виджет настроек
+        self.leaderboard_widget = None  # Виджет таблицы рекордов
+        self.current_modal_widget = None
+        self.is_leaderboard_open = False  # Флаг состояния таблицы рекордов
+        self.is_settings_open = False  # Флаг состояния настроек
         self.current_mode = None
         self.background_pixmap = QPixmap("assets/textures/town.png")
         self.logo_pixmap = QPixmap("assets/textures/logo2.png")
@@ -53,7 +58,8 @@ class MainMenu(QWidget):
         # Кнопки
         self.start_button = self.create_button("Начать игру", self.start_game, x=self.b_x, y=self.b_y, w=750, h=55)
         self.start_duo_button = self.create_button("Играть вдвоем", self.start_duo, x=self.b_x, y=self.b_y + 80, w=750, h=55)
-        self.leaderboard_button = self.create_button("Таблица рекордов", self.open_leaderboard,  x=self.b_x, y=self.b_y + 160, w=550, h=55)
+        self.leaderboard_button = self.create_button("Таблица рекордов", self.open_leaderboard, x=self.b_x, y=self.b_y + 160, w=550, h=55
+        )
         self.settings_button = self.create_button("Настройки", self.open_settings, x=self.b_x, y=self.b_y + 240, w=750, h=55)
         self.exit_button = self.create_button("Выход", self.exit_game, x=self.b_x, y=self.b_y + 320, w=750, h=55)
 
@@ -242,22 +248,63 @@ class MainMenu(QWidget):
         self.current_mode = "duo"  # Устанавливаем режим на дуо
 
     def open_leaderboard(self):
-        print("Открытие таблицы рекордов...")
-        if self.parent:
-            self.parent.leaderboard_screen.set_previous_screen("main_menu")
-            self.parent.setCurrentWidget(self.parent.leaderboard_screen)
+        """Открытие или закрытие таблицы рекордов."""
+        print("Обработка таблицы рекордов...")
+        if self.is_leaderboard_open:
+            # Если таблица рекордов уже открыта, закрываем её
+            if self.parent:
+                self.parent.play_cancel_sound()  # Воспроизведение звука cancel_click
+            self.close_leaderboard()
+            return
 
-    def open_settings(self):
-        """Открытие экрана настроек."""
-        print("Открытие настроек...")
+        # Если таблица рекордов не открыта, открываем её
         if self.parent:
             self.parent.play_select_sound()  # Воспроизведение звука select_click
 
-        # Создаем прозрачный слой, который покрывает только правую часть экрана
+        # Закрываем другие модальные окна, если они открыты
+        self.close_settings()
+
+        # Создаем прозрачный слой, если его еще нет
         if not self.overlay:
             self.overlay = QWidget(self)
-            self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана (1920 - 800 = 1120)
-            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")  # Полупрозрачный фон
+            self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана
+            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
+            self.overlay.hide()
+
+        # Создаем виджет таблицы рекордов
+        if not self.leaderboard_widget:
+            self.leaderboard_widget = LeaderboardScreen(parent=self.parent)
+            self.leaderboard_widget.setParent(self.overlay)  # Размещаем настройки на overlay
+            self.leaderboard_widget.move(50, 240)  # Центрируем по вертикали и горизонтали
+            self.leaderboard_widget.setFixedSize(1020, 600)
+
+        # Показываем overlay и виджет таблицы рекордов
+        self.overlay.show()
+        self.leaderboard_widget.show()
+        self.is_leaderboard_open = True  # Устанавливаем флаг, что таблица рекордов открыта
+
+    def open_settings(self):
+        """Открытие или закрытие экрана настроек."""
+        print("Обработка настроек...")
+        if self.is_settings_open:
+            # Если настройки уже открыты, закрываем их
+            if self.parent:
+                self.parent.play_cancel_sound()  # Воспроизведение звука cancel_click
+            self.close_settings()
+            return
+
+        # Если настройки не открыты, открываем их
+        if self.parent:
+            self.parent.play_select_sound()  # Воспроизведение звука select_click
+
+        # Закрываем другие модальные окна, если они открыты
+        self.close_leaderboard()
+
+        # Создаем прозрачный слой, если его еще нет
+        if not self.overlay:
+            self.overlay = QWidget(self)
+            self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана
+            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
             self.overlay.hide()
 
         # Создаем виджет настроек
@@ -270,20 +317,31 @@ class MainMenu(QWidget):
         # Показываем overlay и настройки
         self.overlay.show()
         self.settings_menu.show()
+        self.is_settings_open = True  # Устанавливаем флаг, что настройки открыты
+
+    def close_current_modal(self):
+        """Закрытие текущего модального окна."""
+        if self.current_modal_widget:
+            self.current_modal_widget.hide()
+            self.overlay.hide()
+            self.current_modal_widget = None
+
+    def close_leaderboard(self):
+        """Закрытие таблицы рекордов."""
+        if self.leaderboard_widget:
+            self.leaderboard_widget.hide()
+        if self.overlay:
+            self.overlay.hide()
+        self.is_leaderboard_open = False
 
     def close_settings(self):
         """Закрытие экрана настроек."""
-        if self.overlay:
-            self.overlay.hide()
         if self.settings_menu:
             self.settings_menu.hide()
+        if self.overlay:
+            self.overlay.hide()
+        self.is_settings_open = False
 
-    def close_settings(self):
-        """Закрытие экрана настроек."""
-        if self.overlay:
-            self.overlay.hide()
-        if self.settings_menu:
-            self.settings_menu.hide()
 
     def exit_game(self):
         print("Выход из игры...")

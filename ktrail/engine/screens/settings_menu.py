@@ -208,3 +208,4 @@ class SettingsMenu(QWidget):
         """Закрытие экрана настроек."""
         if self.parent:
             self.parent.main_menu.close_settings()
+            self.parent.play_cancel_sound()
