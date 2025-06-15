@@ -40,6 +40,18 @@ class SettingsMenu(QWidget):
         self.volume_slider.valueChanged.connect(self.update_music_volume)
         layout.addWidget(self.volume_slider)
 
+        # Регулировка громкости звуковых эффектов
+        effects_label = QLabel("Громкость звуков")
+        effects_label.setFont(QFont("Arial", 18))
+        layout.addWidget(effects_label)
+
+        self.effects_slider = QSlider(Qt.Horizontal)
+        self.effects_slider.setMinimum(0)
+        self.effects_slider.setMaximum(100)
+        self.effects_slider.setValue(self.parent.settings.get("effects_volume", 80))  # Значение по умолчанию 80%
+        self.effects_slider.valueChanged.connect(self.update_effects_volume)
+        layout.addWidget(self.effects_slider)
+
         # Переключатель отображения FPS
         self.fps_toggle = QCheckBox("Отображать FPS")
         self.fps_toggle.setFont(QFont("Arial", 18))
@@ -66,7 +78,12 @@ class SettingsMenu(QWidget):
             self.parent.media_player.setVolume(value)
             self.parent.settings["music_volume"] = value
             self.parent.save_settings()  # Сохраняем настройки
-
+    def update_effects_volume(self, value):
+        """Обновление громкости звуковых эффектов."""
+        if self.parent:
+            self.parent.sound_player.setVolume(value)  # Устанавливаем громкость для sound_player
+            self.parent.settings["effects_volume"] = value
+            self.parent.save_settings()  # Сохраняем настройки
     def toggle_fps(self, state):
         """Переключение отображения FPS."""
         if self.parent:
