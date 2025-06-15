@@ -2,12 +2,15 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QParallelAnimationGroup, QPointF
 from engine.rotating_panel import RotatingPanel
+from engine.screens.settings_menu import SettingsMenu
 
 
 class MainMenu(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.overlay = None  # Прозрачный слой для модального окна
+        self.settings_menu = None  # Виджет настроек
         self.current_mode = None
         self.background_pixmap = QPixmap("assets/textures/town.png")
         self.logo_pixmap = QPixmap("assets/textures/logo2.png")
@@ -136,7 +139,7 @@ class MainMenu(QWidget):
 
     def create_button(self, text, callback, x, y, w, h):
         button = QPushButton(text, self)
-        button.setFont(QFont("Arial", 20))
+        button.setFont(QFont("Montserrat", 20))
         button.clicked.connect(lambda: self.play_button_sound_and_callback(callback))  # Обновленная строка
         button.setGeometry(x, y, w, h)
         button.setStyleSheet("""
@@ -173,7 +176,7 @@ class MainMenu(QWidget):
 
     def create_label(self, text, font_size=18, bold=False, x=0, y=0, w=200, h=50):
         label = QLabel(text, self)
-        font = QFont("Arial", font_size)
+        font = QFont("Montserrat", font_size)
         if bold:
             font.setBold(True)
         label.setFont(font)
@@ -245,10 +248,42 @@ class MainMenu(QWidget):
             self.parent.setCurrentWidget(self.parent.leaderboard_screen)
 
     def open_settings(self):
+        """Открытие экрана настроек."""
         print("Открытие настроек...")
         if self.parent:
-            self.parent.settings_menu.set_previous_screen("main_menu")
-            self.parent.setCurrentWidget(self.parent.settings_menu)
+            self.parent.play_select_sound()  # Воспроизведение звука select_click
+
+        # Создаем прозрачный слой, который покрывает только правую часть экрана
+        if not self.overlay:
+            self.overlay = QWidget(self)
+            self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана (1920 - 800 = 1120)
+            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")  # Полупрозрачный фон
+            self.overlay.hide()
+
+        # Создаем виджет настроек
+        if not self.settings_menu:
+            self.settings_menu = SettingsMenu(parent=self.parent)
+            self.settings_menu.setParent(self.overlay)  # Размещаем настройки на overlay
+            self.settings_menu.move(50, 240)  # Центрируем по вертикали и горизонтали
+            self.settings_menu.setFixedSize(1020, 600)
+
+        # Показываем overlay и настройки
+        self.overlay.show()
+        self.settings_menu.show()
+
+    def close_settings(self):
+        """Закрытие экрана настроек."""
+        if self.overlay:
+            self.overlay.hide()
+        if self.settings_menu:
+            self.settings_menu.hide()
+
+    def close_settings(self):
+        """Закрытие экрана настроек."""
+        if self.overlay:
+            self.overlay.hide()
+        if self.settings_menu:
+            self.settings_menu.hide()
 
     def exit_game(self):
         print("Выход из игры...")
