@@ -152,13 +152,13 @@ class PauseMenu(QWidget):
         """Открыть или закрыть меню настроек."""
         print("Обработка настроек...")
         if self.is_settings_open:
-            # Если настройки уже открыты, закрываем их
+            print("Настройки уже открыты. Закрываем их.")
             if self.parent:
                 self.parent.play_cancel_sound()  # Воспроизведение звука cancel_click
             self.close_settings()
             return
 
-        # Если настройки не открыты, открываем их
+        print("Открываем настройки...")
         if self.parent:
             self.parent.play_select_sound()  # Воспроизведение звука select_click
 
@@ -187,7 +187,9 @@ class PauseMenu(QWidget):
             self.settings_menu.hide()
         if self.overlay:
             self.overlay.hide()
-        self.is_settings_open = False
+        self.is_settings_open = False  # Сбрасываем флаг
+        if self.parent:
+            self.parent.play_cancel_sound()  # Воспроизводим звук cancel_click
 
     def exit_to_main_menu(self):
         """Выйти в главное меню."""

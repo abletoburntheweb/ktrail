@@ -201,8 +201,12 @@ class SettingsMenu(QWidget):
     def toggle_fps(self, state):
         """Переключение отображения FPS."""
         if self.parent:
-            self.parent.settings["show_fps"] = bool(state)
-            self.parent.save_settings()
+            self.parent.settings["show_fps"] = bool(state)  # Обновляем настройку
+            self.parent.save_settings()  # Сохраняем настройку
+
+            # Уведомляем GameScreen о новом состоянии FPS
+            if hasattr(self.parent.game_screen, "update_fps_visibility"):
+                self.parent.game_screen.update_fps_visibility(bool(state))
 
     def close_settings(self):
         """Закрытие экрана настроек."""
