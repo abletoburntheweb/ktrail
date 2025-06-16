@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QUrl
 import json
 
 from engine.screens.game_screen import GameScreen
+from engine.screens.game_screen_duo import GameScreenDuo
 from engine.screens.leaderboard_screen import LeaderboardScreen
 from engine.screens.main_menu import MainMenu
 
@@ -211,7 +212,6 @@ class GameEngine(QStackedWidget):
             if not current_widget.is_intro_finished:
                 print("Интро еще не завершено. Музыка главного меню не запускается.")
                 return
-
             # Проверяем, играет ли уже музыка главного меню
             if self.current_music != self.menu_music_path:
                 print("Переключение на музыку главного меню...")
@@ -219,7 +219,7 @@ class GameEngine(QStackedWidget):
                 self.play_music(self.menu_music_path)
             else:
                 print("Музыка главного меню уже играет.")
-        elif isinstance(current_widget, GameScreen):
+        elif isinstance(current_widget, GameScreen) or isinstance(current_widget, GameScreenDuo):
             # Проверяем, играет ли уже игровая музыка
             if self.current_music != self.game_music_path:
                 print("Переключение на игровую музыку...")

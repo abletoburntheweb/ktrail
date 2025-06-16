@@ -4,7 +4,7 @@ from time import perf_counter
 from PyQt5.QtCore import Qt, QTimer, QRect
 from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont, QPixmap
-from engine.game_logic import GameEngine
+
 from engine.player_duo import PlayerDuo
 from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, StreetLampDuo, ExposedWireDuo
 from engine.day_night import DayNightSystem
@@ -340,7 +340,9 @@ class GameScreenDuo(QWidget):
         for i, (x, y) in enumerate(trail):
             alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
             factor = i / self.max_trail_length  # Коэффициент интерполяции
-            interpolated_color = GameEngine.interpolate_color(start_color, end_color, factor) if hasattr(GameEngine, "interpolate_color") else start_color
+            from engine.game_logic import GameEngine
+            interpolated_color = GameEngine.interpolate_color(start_color, end_color, factor) if hasattr(GameEngine,
+                                                                                                         "interpolate_color") else start_color
             interpolated_color.setAlpha(max(0, alpha))  # Устанавливаем прозрачность
             painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
 
