@@ -1,34 +1,27 @@
 # engine/screens/game_screen.py
 import json
 from time import perf_counter
-
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
-
 from engine.car import Car
-# Импорты других классов
 from engine.day_night import DayNightSystem
 from engine.player import Player
 from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower, StreetLamp
 from engine.powerups import SpeedBoost
 from engine.tile_manager import TileManager  # Новый менеджер тайлов
 
-
 class GameScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-
         self.start_time = None  # Время начала игры
         self.elapsed_time = 0  # Затраченное время (в секундах)
-
         # Добавляем переменные для расчета FPS
         self.frame_count = 0
         self.fps = 0
         self.last_fps_update_time = perf_counter()
         self.show_fps = self.parent.settings.get("show_fps", True)
-
         # Прогресс-бар для шкалы КЗ
         self.short_circuit_bar = QProgressBar(self)
         self.short_circuit_bar.setGeometry(10, 10, 300, 20)  # Размеры прогресс-бара
@@ -47,23 +40,17 @@ class GameScreen(QWidget):
                     }
                 """)
         self.short_circuit_bar.show()
-
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
-
         self.target_distance = 0  # Целевая дистанция
         self.distance_traveled = 0  # Пройденная дистанция
         self.speed_to_meters_coefficient = 0.01
-
         self.speed = 10
-
         self.init_ui()
-
         # Параметры для тайлов
         self.tile_size = 192
         self.rows = 6
         self.columns = 10
-
         # Инициализация TileManager
         self.tile_manager = TileManager(
             tile_size=self.tile_size,
@@ -72,7 +59,6 @@ class GameScreen(QWidget):
             screen_width=self.width(),
             screen_height=self.height()
         )
-
         # Добавляем типы тайлов
         self.tile_manager.add_tile_type(
             "asphalt",
@@ -86,57 +72,42 @@ class GameScreen(QWidget):
         self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
         self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
         self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
-
         # Создаём начальные тайлы
         self.tile_manager.init_tiles()
-
         # Игрок
         self.player = Player()
-
         # Опоры ЛЭП
         self.transmission_towers = []
-
         # Таймер для спавна опор ЛЭП
         self.tower_spawn_timer = QTimer(self)
         self.tower_spawn_timer.timeout.connect(self.spawn_transmission_tower)
         self.tower_spawn_timer.start(8000)  # Спавн каждые 8 секунд
-
         # Фонари
         self.street_lamps = []
-
         # Таймер для спавна фонарей
         self.lamp_spawn_timer = QTimer(self)
         self.lamp_spawn_timer.timeout.connect(self.spawn_street_lamp)
         self.lamp_spawn_timer.start(6000)  # Спавн каждые 6 секунд
-
         # Препятствия
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
-
         self.cars = []
         self.car_spawn_timer = QTimer(self)
         self.car_spawn_timer.timeout.connect(self.spawn_car)
         self.car_spawn_timer.start(5000)
-
         self.exposed_wires = []
-
         # Таймер для спавна оголенных проводов
         self.exposed_wire_spawn_timer = QTimer(self)
         self.exposed_wire_spawn_timer.timeout.connect(self.spawn_exposed_wire)
         self.exposed_wire_spawn_timer.start(3000)  # Спавн каждые 3 секунды
-
         self.active_powerups = []
-
         # Таймер для спавна паверапов
         self.powerup_spawn_timer = QTimer(self)
         self.powerup_spawn_timer.timeout.connect(self.spawn_powerup)
         self.powerup_spawn_timer.start(15000)  # Спавн каждые 15 секунд
-
         # Линии
         self.power_line = PowerLine(line_width=12, color="#89878c")
-
-
         # Трейл игрока
         self.trail = []  # Трейл игрока
         self.max_trail_length = 35
@@ -145,23 +116,29 @@ class GameScreen(QWidget):
         self.target_trail_x = self.player.x + 15  # Целевая координата X для трейла
         self.current_trail_x = self.player.x + 15  # Текущая координата X для трейла
         self.trail_transition_speed = 5  # Скорость перехода трейла
-
         # Таймер игры
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
-
         # Таймер обновления времени
         self.time_timer = QTimer(self)
         self.time_timer.timeout.connect(self.update_day_night)
-
         # Состояние игры
         self.is_game_over = False
         self.total_removed_obstacles = 0
-
         # ВАЖНО: Таймеры НЕ запускаются автоматически
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
         self.time_timer.stop()
+
+        # Создание объектов QPainter и QBrush один раз
+        self.painter = QPainter()
+        self.player_brush = QBrush(Qt.red)
+        self.obstacle_brush = QBrush(Qt.black)
+        self.powerup_brush = QBrush(Qt.green)
+        self.exposed_wire_brush = QBrush(QColor("#f80000"))
+        self.street_lamp_brush = QBrush(Qt.darkGray)
+        self.trail_start_color = QColor("#4aa0fc")  # Голубой
+        self.trail_end_color = QColor("#FFFFFF")  # Белый
 
     def init_ui(self):
         self.setWindowTitle("Игровой экран")
@@ -176,6 +153,7 @@ class GameScreen(QWidget):
         if not self.is_game_over:
             tower = TransmissionTower(screen_height=self.height())
             self.transmission_towers.append(tower)
+
     def spawn_obstacle(self):
         """Генерация нового препятствия."""
         if not self.is_game_over:
@@ -193,6 +171,7 @@ class GameScreen(QWidget):
         if not self.is_game_over:
             lamp = StreetLamp(self.width(), self.height())
             self.street_lamps.append(lamp)
+
     def spawn_car(self):
         """Генерация новой машины (двигается снизу вверх по правому ряду)"""
         if not self.is_game_over:
@@ -209,68 +188,52 @@ class GameScreen(QWidget):
 
     def paintEvent(self, event):
         try:
-            painter = QPainter(self)
-
+            self.painter.begin(self)
             # 1. Рисуем тайлы
-            self.tile_manager.draw_tiles(painter)
-
+            self.tile_manager.draw_tiles(self.painter)
             # 2. Отрисовка машин
             for car in self.cars:
                 if car and car.texture:
-                    painter.drawPixmap(car.x, car.y, car.texture)
-
+                    self.painter.drawPixmap(car.x, car.y, car.texture)
             # 3. Накладываем градиент дня/ночи
             gradient = self.day_night.get_background_gradient(self.height())
             if gradient:
-                painter.setBrush(gradient)
-                painter.setPen(Qt.NoPen)
-                painter.drawRect(self.rect())
-
+                self.painter.setBrush(gradient)
+                self.painter.setPen(Qt.NoPen)
+                self.painter.drawRect(self.rect())
             # 4. Отрисовка линий
-            self.power_line.draw(painter, self.height())
-
+            self.power_line.draw(self.painter, self.height())
             # 5. Отрисовка трейла
-            start_color = QColor("#4aa0fc")  # Голубой
-            end_color = QColor("#FFFFFF")  # Белый
-
             for i, (x, y) in enumerate(self.trail):
                 alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
                 factor = i / self.max_trail_length  # Коэффициент интерполяции
-                interpolated_color = self.parent.interpolate_color(start_color, end_color, factor) if hasattr(
-                    self.parent, "interpolate_color") else start_color
+                interpolated_color = self.parent.interpolate_color(self.trail_start_color, self.trail_end_color, factor) if hasattr(self.parent, "interpolate_color") else self.trail_start_color
                 interpolated_color.setAlpha(max(0, alpha))  # Устанавливаем прозрачность
-                painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
-
+                self.painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
             # 6. Отрисовка игрока
             if self.player:
-                painter.fillRect(self.player.get_rect(), QBrush(Qt.red))
-
+                self.painter.fillRect(self.player.get_rect(), self.player_brush)
             # 7. Отрисовка препятствий
             for obstacle in self.obstacles:
                 if obstacle and obstacle.get_rect():
-                    painter.fillRect(obstacle.get_rect(), QBrush(Qt.black))
-
+                    self.painter.fillRect(obstacle.get_rect(), self.obstacle_brush)
             # 8. Отрисовка опор ЛЭП
             for tower in self.transmission_towers:
                 if tower:
-                    tower.draw(painter)
-
+                    tower.draw(self.painter)
             # 9. Отрисовка паверапа скорости
             for powerup in self.active_powerups:
                 if powerup and powerup.get_rect():
-                    painter.fillRect(powerup.get_rect(), QBrush(powerup.color))
-
+                    self.painter.fillRect(powerup.get_rect(), self.powerup_brush)
             # 10. Отрисовка оголенного провода
             for exposed_wire in self.exposed_wires:
                 if exposed_wire and exposed_wire.get_rect():
-                    painter.fillRect(exposed_wire.get_rect(), QBrush(exposed_wire.color))
-
+                    self.painter.fillRect(exposed_wire.get_rect(), self.exposed_wire_brush)
             # 11. Отрисовка уличных фонарей
             for lamp in self.street_lamps:
                 if lamp and lamp.get_rect():
-                    painter.fillRect(lamp.get_rect(), QBrush(Qt.darkGray))
-                    lamp.draw_light(painter, self.height())
-
+                    self.painter.fillRect(lamp.get_rect(), self.street_lamp_brush)
+                    lamp.draw_light(self.painter, self.height())
             # 12. Фонарь при переходе ночи
             if self.day_night.should_draw_light():
                 light_pos = self.mapFromGlobal(self.cursor().pos())
@@ -279,29 +242,26 @@ class GameScreen(QWidget):
                     light_gradient = QRadialGradient(light_pos, light_radius)
                     light_gradient.setColorAt(0, QColor(255, 240, 200, 120))
                     light_gradient.setColorAt(1, QColor(255, 240, 200, 0))
-                    painter.setBrush(light_gradient)
-                    painter.setPen(Qt.NoPen)
-                    painter.drawEllipse(light_pos, light_radius, light_radius)
-
+                    self.painter.setBrush(light_gradient)
+                    self.painter.setPen(Qt.NoPen)
+                    self.painter.drawEllipse(light_pos, light_radius, light_radius)
             # Отображение текста
             if self.target_distance > 0:
                 text = f"Пройдено: {int(self.distance_traveled)} м / {self.target_distance} м"
-                text_width = painter.fontMetrics().width(text)
-                painter.setPen(QColor(255, 255, 255))
-                painter.drawText(self.width() - text_width - 20, 50, text)
-
+                text_width = self.painter.fontMetrics().width(text)
+                self.painter.setPen(QColor(255, 255, 255))
+                self.painter.drawText(self.width() - text_width - 20, 50, text)
             speed_text = f"Скорость: {self.player.get_current_speed()} м/с"
-            painter.drawText(10, 30, speed_text)
-
+            self.painter.drawText(10, 30, speed_text)
             if self.show_fps:
                 fps_text = f"FPS: {self.fps:.1f}"
-                painter.drawText(10, 60, fps_text)
-
+                self.painter.drawText(10, 60, fps_text)
             timer_text = f"Время: {self.elapsed_time:.1f} сек"
-            painter.drawText(10, 90, timer_text)
-
+            self.painter.drawText(10, 90, timer_text)
         except Exception as e:
             print(f"Ошибка в paintEvent: {e}")
+        finally:
+            self.painter.end()
 
     def update_fps_visibility(self, visible):
         """Обновляет видимость FPS."""
@@ -333,20 +293,16 @@ class GameScreen(QWidget):
         self.distance_traveled = 0
         self.start_time = perf_counter()  # Фиксируем время начала игры
         self.elapsed_time = 0  # Сбрасываем затраченное время
-
         # Сбрасываем состояние игрока
         self.player = Player()
-
         # Очищаем списки объектов
         self.obstacles.clear()
         self.cars.clear()
         self.trail.clear()
         self.exposed_wires.clear()
         self.transmission_towers.clear()
-
         # Пересоздаём тайлы
         self.tile_manager.init_tiles()
-
         # Запускаем таймеры
         self.timer.start(16)
         self.obstacle_spawn_timer.start(2000)
@@ -356,7 +312,6 @@ class GameScreen(QWidget):
         """Обновление игрового процесса."""
         if self.is_game_over:
             return
-
         # Подсчет FPS
         self.frame_count += 1
         current_time = perf_counter()
@@ -365,27 +320,22 @@ class GameScreen(QWidget):
             self.fps = self.frame_count / elapsed_time_fps
             self.frame_count = 0
             self.last_fps_update_time = current_time
-
         # Обновляем затраченное время
         if self.start_time is not None:
             self.elapsed_time = current_time - self.start_time
-
         # Динамический расчет пройденного расстояния
         current_speed = self.player.get_current_speed()  # Текущая скорость игрока
         meters_this_frame = current_speed * self.speed_to_meters_coefficient
         self.distance_traveled += meters_this_frame
-
         # Проверка достижения целевой дистанции
         if self.distance_traveled >= self.target_distance:
             self.show_victory()
             return
-
         # Плавное обновление координаты X трейла
         if self.current_trail_x != self.target_trail_x:
             delta = self.target_trail_x - self.current_trail_x
             step = delta / self.trail_transition_speed
             self.current_trail_x += step
-
         # Добавление нескольких точек в трейл в зависимости от скорости
         num_points = max(1, int(current_speed / 5))  # Количество точек зависит от скорости
         for i in range(num_points):
@@ -395,95 +345,74 @@ class GameScreen(QWidget):
             # Добавляем новую точку с учетом смещения по Y
             y_offset = i * (self.player.speed // num_points)  # Смещение по Y для каждой точки
             self.trail.insert(0, (interpolated_x, self.player.y - y_offset))
-
         # Ограничение длины трейла
         if len(self.trail) > self.max_trail_length:
             self.trail = self.trail[:self.max_trail_length]
-
         # Сдвигаем все точки трейла вниз
         self.trail = [(x, y + self.player.speed) for x, y in self.trail]
-
         # Движение препятствий
         for obstacle in self.obstacles:
             obstacle.move()
-
         # Движение опор ЛЭП
         for tower in self.transmission_towers:
             tower.move(self.player.speed)
-
         # Удаление ушедших за экран опор ЛЭП
         initial_count = len(self.transmission_towers)
         self.transmission_towers = [tower for tower in self.transmission_towers if not tower.is_off_screen()]
         self.total_removed_obstacles += initial_count - len(self.transmission_towers)
-
         # Движение фонарей
         for lamp in self.street_lamps:
             lamp.move()
             lamp.update_light_state(self.day_night)
-
         # Удаление ушедших за экран фонарей
         initial_count = len(self.street_lamps)
         self.street_lamps = [lamp for lamp in self.street_lamps if not lamp.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.street_lamps)
-
-        # Удаление ушедших за экран
+        # Удаление ушедших за экран препятствий
         initial_count = len(self.obstacles)
         self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
-
         for exposed_wire in self.exposed_wires:
             exposed_wire.move()
-
-            # Удаление ушедших за экран оголенных проводов
+        # Удаление ушедших за экран оголенных проводов
         initial_count = len(self.exposed_wires)
         self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.exposed_wires)
-
         # Движение машин
         for car in self.cars:
             car.move()
-
         # Удаление ушедших за экран машин
         self.cars = [car for car in self.cars if not car.is_off_screen()]
-
         # Проверка коллизий
         self.check_collisions()
         # Движение паверапов
         for powerup in self.active_powerups:
             powerup.move()
-
         # Проверка коллизий с игроком
         player_rect = self.player.get_rect()
         for powerup in self.active_powerups[:]:
             if player_rect.intersects(powerup.get_rect()):
                 powerup.activate(self.player)  # Активируем паверап
                 self.active_powerups.remove(powerup)  # Удаляем паверап после активации
-
         # Удаление ушедших за экран паверапов
         self.active_powerups = [pu for pu in self.active_powerups if not pu.is_off_screen(self.height())]
-
         self.short_circuit_bar.setValue(int(self.player.get_short_circuit_level()))
-
         # Обновление позиций тайлов
         self.tile_manager.update_tiles(self.player.speed)
-
         self.update()
 
     def check_collisions(self):
         """Проверка коллизий."""
         player_rect = self.player.get_rect()
-
         # Проверка переполнения шкалы КЗ
         if self.player.get_short_circuit_level() >= self.player.short_circuit_max:
             self.show_game_over()
             return
-
         # Проверка коллизий с обычными препятствиями
         for obstacle in self.obstacles:
             if player_rect.intersects(obstacle.get_rect()):
                 self.show_game_over()
                 return
-
         # Проверка коллизий с оголенными проводами
         for exposed_wire in self.exposed_wires:
             if player_rect.intersects(exposed_wire.get_rect()):
@@ -501,12 +430,10 @@ class GameScreen(QWidget):
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
-
         records = data.get(str(distance), [])
         records.append(time)
         records.sort()  # Сортировка по времени (лучшее время сверху)
         data[str(distance)] = records
-
         with open("config/leaderboard.json", "w") as file:
             json.dump(data, file, indent=4)
 
@@ -514,11 +441,9 @@ class GameScreen(QWidget):
         self.is_game_over = True
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
-
         # Сохраняем рекорд
         time_taken = self.elapsed_time  # Используем затраченное время
         self.save_record(self.target_distance, time_taken)
-
         msg = QMessageBox()
         msg.setWindowTitle("Победа!")
         msg.setText(f"Вы проехали {int(self.target_distance)} метров за {time_taken:.1f} сек!")
@@ -538,14 +463,12 @@ class GameScreen(QWidget):
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
         self.parent.stop_music()  # Останавливаем музыку при проигрыше
-
         msg = QMessageBox()
         msg.setWindowTitle("Конец игры")
         msg.setText("Вы проиграли! Короткое замыкание!")
         msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
         msg.setIcon(QMessageBox.Critical)
         choice = msg.exec_()
-
         if choice == QMessageBox.Retry:
             self.reset_game()
             self.update()
@@ -583,7 +506,6 @@ class GameScreen(QWidget):
             self.is_paused = not self.is_paused
         else:
             self.is_paused = True
-
         if self.is_paused:
             # Захватываем последний кадр игры
             self.last_frame_pixmap = self.grab()
