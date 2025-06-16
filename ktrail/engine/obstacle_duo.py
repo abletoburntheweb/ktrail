@@ -69,13 +69,14 @@ class PowerLineDuo:
             painter.fillRect(line_x, 0, self.line_width, screen_height, self.color)
 
 class TransmissionTowerDuo:
-    def __init__(self, screen_height, platform_width=540, platform_height=30, gap=150):
+    def __init__(self, screen_height, platform_width=540, platform_height=30, gap=150, central=True):
         """
         Класс для представления опоры ЛЭП.
         :param screen_height: Высота экрана для расчета начальной позиции.
         :param platform_width: Ширина платформ (верхней и нижней).
         :param platform_height: Высота платформ.
         :param gap: Расстояние между верхней и нижней платформами.
+        :param central: Флаг, указывающий, должна ли опора спавниться на центральной линии.
         """
         self.y = -platform_height - screen_height  # Спавн выше экрана
         self.platform_width = platform_width
@@ -83,8 +84,12 @@ class TransmissionTowerDuo:
         self.gap = gap
         self.screen_height = screen_height
 
-        # Координаты для всех 6 полос (3 слева, 3 справа)
-        self.x_positions = [600, 700, 800, 1100, 1200, 1300]
+        # Определяем центральную линию для каждого игрока
+        if central:
+            self.x_positions = [1100, 1200, 1300]  # Правая сторона для player1
+        else:
+            self.x_positions = [960, 1210]  # Левая и правая линия для player1
+
         self.x = choice(self.x_positions)
 
         # Платформы
