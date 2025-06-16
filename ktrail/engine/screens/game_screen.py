@@ -1,15 +1,14 @@
-# engine/screens/game_screen.py
 import json
 from time import perf_counter
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
+from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar, QLabel
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
 from engine.car import Car
 from engine.day_night import DayNightSystem
 from engine.player import Player
 from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower, StreetLamp
 from engine.powerups import SpeedBoost
-from engine.tile_manager import TileManager  # Новый менеджер тайлов
+from engine.tile_manager import TileManager
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -46,6 +45,19 @@ class GameScreen(QWidget):
         self.distance_traveled = 0  # Пройденная дистанция
         self.speed_to_meters_coefficient = 0.01
         self.speed = 10
+        # Инициализация side_panel_label
+        self.side_panel_label = QLabel(self)
+        self.side_panel_pixmap = QPixmap("assets/textures/side_panel.png")  # Укажите правильный путь к файлу
+        if self.side_panel_pixmap.isNull():
+            print("Ошибка: Изображение side_panel.png не загружено!")
+        else:
+            self.side_panel_label.setPixmap(self.side_panel_pixmap)
+            self.side_panel_label.setAlignment(Qt.AlignTop | Qt.AlignRight)
+            self.side_panel_label.setScaledContents(True)  # Растягиваем изображение
+            # Отладочная информация
+            print(f"Size of side_panel_pixmap: {self.side_panel_pixmap.size()}")
+            print(f"Size of side_panel_label: {self.side_panel_label.size()}")
+
         self.init_ui()
         # Параметры для тайлов
         self.tile_size = 192
@@ -129,7 +141,6 @@ class GameScreen(QWidget):
         self.timer.stop()
         self.obstacle_spawn_timer.stop()
         self.time_timer.stop()
-
         # Создание объектов QPainter и QBrush один раз
         self.painter = QPainter()
         self.player_brush = QBrush(Qt.red)
@@ -140,6 +151,17 @@ class GameScreen(QWidget):
         self.trail_start_color = QColor("#4aa0fc")  # Голубой
         self.trail_end_color = QColor("#FFFFFF")  # Белый
 
+        # Увеличиваем размер side_panel
+        side_panel_width = 400  # Желаемая ширина
+        side_panel_height = 200  # Желаемая высота
+        self.side_panel_label.setFixedSize(side_panel_width, side_panel_height)
+        # Размещаем side_panel в правом верхнем углу
+        self.side_panel_label.setGeometry(
+            self.width() - side_panel_width,  # X
+            0,  # Y
+            side_panel_width,  # Ширина
+            side_panel_height  # Высота
+        )
     def init_ui(self):
         self.setWindowTitle("Игровой экран")
         self.setFixedSize(1920, 1080)
