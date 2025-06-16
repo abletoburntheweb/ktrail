@@ -1,7 +1,7 @@
 import json
 from time import perf_counter
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar, QLabel
+from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar, QLabel, QVBoxLayout
 from PyQt5.QtGui import QPainter, QColor, QBrush, QPixmap, QRadialGradient
 from engine.car import Car
 from engine.day_night import DayNightSystem
@@ -9,6 +9,7 @@ from engine.player import Player
 from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower, StreetLamp
 from engine.powerups import SpeedBoost
 from engine.tile_manager import TileManager
+
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -162,6 +163,29 @@ class GameScreen(QWidget):
             side_panel_width,  # Ширина
             side_panel_height  # Высота
         )
+
+        # Создание контейнера
+        self.side_panel_container = QWidget(self)
+        self.side_panel_container.setGeometry(
+            self.width() - side_panel_width,  # X
+            0,  # Y
+            side_panel_width,  # Ширина
+            side_panel_height  # Высота
+        )
+        self.side_panel_container.setStyleSheet("background-color: rgba(0, 0, 0, 150);")  # Полупрозрачный фон
+
+        # Создание QLabel для "Расстояние"
+        self.distance_label = QLabel("200", self.side_panel_container)
+        self.distance_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
+        self.distance_label.setStyleSheet("color: white; font-size: 18px;")
+        self.distance_label.setGeometry(75, 20, side_panel_width - 1, 40)  # X, Y, Width, Height
+
+        # Создание QLabel для "Время"
+        self.time_label = QLabel("30", self.side_panel_container)
+        self.time_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
+        self.time_label.setStyleSheet("color: white; font-size: 18px;")
+        self.time_label.setGeometry(0, 140, side_panel_width - 55, 40)  # X, Y, Width, Height
+
     def init_ui(self):
         self.setWindowTitle("Игровой экран")
         self.setFixedSize(1920, 1080)
@@ -208,6 +232,23 @@ class GameScreen(QWidget):
             powerup = SpeedBoost(screen_width=self.width(), screen_height=self.height())
             self.active_powerups.append(powerup)
 
+    def update_distance_text(self, distance_traveled, target_distance):
+        """
+        Обновляет текст для отображения расстояния.
+        :param distance_traveled: Пройденное расстояние (в метрах).
+        :param target_distance: Целевая дистанция (в метрах).
+        """
+        text = f"{int(distance_traveled)}"
+        self.distance_label.setText(text)
+
+    def update_time_text(self, elapsed_time):
+        """
+        Обновляет текст для отображения затраченного времени.
+        :param elapsed_time: Затраченное время (в секундах).
+        """
+        time_text = f"{elapsed_time:.1f}"
+        self.time_label.setText(time_text)
+
     def paintEvent(self, event):
         try:
             self.painter.begin(self)
@@ -229,7 +270,9 @@ class GameScreen(QWidget):
             for i, (x, y) in enumerate(self.trail):
                 alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
                 factor = i / self.max_trail_length  # Коэффициент интерполяции
-                interpolated_color = self.parent.interpolate_color(self.trail_start_color, self.trail_end_color, factor) if hasattr(self.parent, "interpolate_color") else self.trail_start_color
+                interpolated_color = self.parent.interpolate_color(self.trail_start_color, self.trail_end_color,
+                                                                   factor) if hasattr(self.parent,
+                                                                                      "interpolate_color") else self.trail_start_color
                 interpolated_color.setAlpha(max(0, alpha))  # Устанавливаем прозрачность
                 self.painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
             # 6. Отрисовка игрока
@@ -334,6 +377,12 @@ class GameScreen(QWidget):
         """Обновление игрового процесса."""
         if self.is_game_over:
             return
+
+        def update_game(self):
+            """Обновление игрового процесса."""
+            if self.is_game_over:
+                return
+
         # Подсчет FPS
         self.frame_count += 1
         current_time = perf_counter()
@@ -342,22 +391,35 @@ class GameScreen(QWidget):
             self.fps = self.frame_count / elapsed_time_fps
             self.frame_count = 0
             self.last_fps_update_time = current_time
+
         # Обновляем затраченное время
         if self.start_time is not None:
             self.elapsed_time = current_time - self.start_time
+
         # Динамический расчет пройденного расстояния
+        meters_this_frame = 0  # Значение по умолчанию
         current_speed = self.player.get_current_speed()  # Текущая скорость игрока
-        meters_this_frame = current_speed * self.speed_to_meters_coefficient
+        if current_speed is not None:
+            meters_this_frame = current_speed * self.speed_to_meters_coefficient
         self.distance_traveled += meters_this_frame
+
         # Проверка достижения целевой дистанции
         if self.distance_traveled >= self.target_distance:
             self.show_victory()
             return
+
+        # Обновляем текст для расстояния
+        self.update_distance_text(self.distance_traveled, self.target_distance)
+
+        # Обновляем текст для затраченного времени
+        self.update_time_text(self.elapsed_time)
+
         # Плавное обновление координаты X трейла
         if self.current_trail_x != self.target_trail_x:
             delta = self.target_trail_x - self.current_trail_x
             step = delta / self.trail_transition_speed
             self.current_trail_x += step
+
         # Добавление нескольких точек в трейл в зависимости от скорости
         num_points = max(1, int(current_speed / 5))  # Количество точек зависит от скорости
         for i in range(num_points):
@@ -367,60 +429,79 @@ class GameScreen(QWidget):
             # Добавляем новую точку с учетом смещения по Y
             y_offset = i * (self.player.speed // num_points)  # Смещение по Y для каждой точки
             self.trail.insert(0, (interpolated_x, self.player.y - y_offset))
+
         # Ограничение длины трейла
         if len(self.trail) > self.max_trail_length:
             self.trail = self.trail[:self.max_trail_length]
+
         # Сдвигаем все точки трейла вниз
         self.trail = [(x, y + self.player.speed) for x, y in self.trail]
+
         # Движение препятствий
         for obstacle in self.obstacles:
             obstacle.move()
+
         # Движение опор ЛЭП
         for tower in self.transmission_towers:
             tower.move(self.player.speed)
+
         # Удаление ушедших за экран опор ЛЭП
         initial_count = len(self.transmission_towers)
         self.transmission_towers = [tower for tower in self.transmission_towers if not tower.is_off_screen()]
         self.total_removed_obstacles += initial_count - len(self.transmission_towers)
+
         # Движение фонарей
         for lamp in self.street_lamps:
             lamp.move()
             lamp.update_light_state(self.day_night)
+
         # Удаление ушедших за экран фонарей
         initial_count = len(self.street_lamps)
         self.street_lamps = [lamp for lamp in self.street_lamps if not lamp.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.street_lamps)
+
         # Удаление ушедших за экран препятствий
         initial_count = len(self.obstacles)
         self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
+
         for exposed_wire in self.exposed_wires:
             exposed_wire.move()
+
         # Удаление ушедших за экран оголенных проводов
         initial_count = len(self.exposed_wires)
         self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(540)]
         self.total_removed_obstacles += initial_count - len(self.exposed_wires)
+
         # Движение машин
         for car in self.cars:
             car.move()
+
         # Удаление ушедших за экран машин
         self.cars = [car for car in self.cars if not car.is_off_screen()]
+
         # Проверка коллизий
         self.check_collisions()
+
         # Движение паверапов
         for powerup in self.active_powerups:
             powerup.move()
+
         # Проверка коллизий с игроком
         player_rect = self.player.get_rect()
         for powerup in self.active_powerups[:]:
             if player_rect.intersects(powerup.get_rect()):
                 powerup.activate(self.player)  # Активируем паверап
                 self.active_powerups.remove(powerup)  # Удаляем паверап после активации
+
         # Удаление ушедших за экран паверапов
         self.active_powerups = [pu for pu in self.active_powerups if not pu.is_off_screen(self.height())]
+
         self.short_circuit_bar.setValue(int(self.player.get_short_circuit_level()))
+
         # Обновление позиций тайлов
         self.tile_manager.update_tiles(self.player.speed)
+
         self.update()
 
     def check_collisions(self):
