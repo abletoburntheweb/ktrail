@@ -585,9 +585,13 @@ class GameScreen(QWidget):
             self.is_paused = True
 
         if self.is_paused:
+            # Захватываем последний кадр игры
+            self.last_frame_pixmap = self.grab()
+            print("Снимок экрана успешно захвачен:", not self.last_frame_pixmap.isNull())
             self.timer.stop()
             if self.parent:
                 self.parent.main_menu.current_mode = "single"  # Сохраняем текущий режим
+                self.parent.pause_menu.set_last_frame(self.last_frame_pixmap)  # Передаем снимок в меню паузы
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         else:
             self.timer.start(16)

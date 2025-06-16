@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QPainter
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QPointF
 
 from engine.screens.settings_menu import SettingsMenu
@@ -15,25 +15,29 @@ class PauseMenu(QWidget):
         self.overlay = None  # Прозрачный слой для модального окна
         self.settings_menu = None  # Виджет настроек
         self.is_settings_open = False  # Флаг состояния настроек
+        self.last_frame_pixmap = None
         self.init_ui()
+
+    def set_last_frame(self, pixmap):
+        """Установка последнего кадра игры."""
+        self.last_frame_pixmap = pixmap
+        self.update()  # Обновляем виджет, чтобы перерисовать фон
 
     def paintEvent(self, event):
         """Рисование фона."""
-        if hasattr(self, "show_background") and self.show_background:
-            super().paintEvent(event)
+        painter = QPainter(self)
+        if self.last_frame_pixmap:
+            painter.drawPixmap(self.rect(), self.last_frame_pixmap)
+        else:
+            # Если кадр не захвачен, рисуем фон по умолчанию
+            if not self.background_pixmap.isNull():
+                painter.drawPixmap(self.rect(), self.background_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio,
+                                                                              Qt.SmoothTransformation))
 
     def init_ui(self):
         """Инициализация интерфейса."""
         self.setWindowTitle("Пауза")
         self.setFixedSize(1920, 1080)
-
-        # Устанавливаем фоновое изображение
-        self.background_label = QLabel(self)
-        if not self.background_pixmap.isNull():
-            self.background_label.setPixmap(
-                self.background_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
-        else:
-            print("Ошибка: не удалось загрузить файл фона assets/textures/town.png")
 
         # Градиент слева
         self.gradient_label = QLabel(self)
@@ -53,7 +57,6 @@ class PauseMenu(QWidget):
 
         # Список виджетов для анимации
         self.widgets_to_restore = [
-            self.background_label,
             self.gradient_label,
             self.title_label,
             self.continue_button,
