@@ -211,31 +211,31 @@ class GameScreenDuo(QWidget):
             self.exposed_wires2.append(wire)
 
     def spawn_transmission_tower1(self):
-        """Генерация новой опоры ЛЭП для player1."""
+        """Генерация дополнительной опоры ЛЭП для player1."""
         if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height())
-            tower.x = choice([1100, 1200, 1300])  # Правая сторона для player1
+            tower = TransmissionTowerDuo(screen_height=self.height(), central=False)
+            tower.x = choice([960, 1210])  # Левая и правая линия для player1
             self.transmission_towers1.append(tower)
 
     def spawn_transmission_tower2(self):
-        """Генерация новой опоры ЛЭП для player2."""
+        """Генерация дополнительной опоры ЛЭП для player2."""
         if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height())
-            tower.x = choice([600, 700, 800])  # Левая сторона для player2
+            tower = TransmissionTowerDuo(screen_height=self.height(), central=False)
+            tower.x = choice([410, 660])  # Левая и правая линия для player2
             self.transmission_towers2.append(tower)
 
     def spawn_street_lamp1(self):
         """Генерация нового фонаря для player1."""
         if not self.is_game_over:
             lamp = StreetLampDuo(self.width(), self.height())
-            lamp.x = choice([600, 700, 800])  # Левая сторона для player1
+            lamp.x = choice([1100, 1200, 1300])  # Центральная линия для player1
             self.street_lamps1.append(lamp)
 
     def spawn_street_lamp2(self):
         """Генерация нового фонаря для player2."""
         if not self.is_game_over:
             lamp = StreetLampDuo(self.width(), self.height())
-            lamp.x = choice([1100, 1200, 1300])  # Правая сторона для player2
+            lamp.x = choice([600, 700, 800])  # Центральная линия для player2
             self.street_lamps2.append(lamp)
 
     def paintEvent(self, event):
@@ -485,17 +485,19 @@ class GameScreenDuo(QWidget):
         return current_trail_x
 
     def check_collisions(self):
-        """Проверка коллизий."""
         p1_rect = self.player1.get_rect()
         p2_rect = self.player2.get_rect()
+
         # Проверка переполнения шкалы КЗ для player1
         if self.player1.get_short_circuit_level() >= self.player1.short_circuit_max:
             self.handle_collision(self.player1, self.distance_traveled_player1, 20)
             return
+
         # Проверка переполнения шкалы КЗ для player2
         if self.player2.get_short_circuit_level() >= self.player2.short_circuit_max:
             self.handle_collision(self.player2, self.distance_traveled_player2, 20)
             return
+
         # Проверка столкновений для player1
         for obstacle in self.obstacles1[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
@@ -503,12 +505,14 @@ class GameScreenDuo(QWidget):
                 self.handle_collision(self.player1, self.distance_traveled_player1, 20)
                 self.obstacles1.remove(obstacle)  # Удаляем препятствие
                 break
+
         for wire in self.exposed_wires1[:]:  # Используем копию списка для безопасного удаления
             rect = wire.get_rect()
             if p1_rect.intersects(rect) and not self.player1.is_invincible:
                 self.handle_collision(self.player1, self.distance_traveled_player1, 20)
                 self.exposed_wires1.remove(wire)  # Удаляем оголенный провод
                 break
+
         # Проверка столкновений для player2
         for obstacle in self.obstacles2[:]:  # Используем копию списка для безопасного удаления
             rect = obstacle.get_rect()
@@ -516,6 +520,7 @@ class GameScreenDuo(QWidget):
                 self.handle_collision(self.player2, self.distance_traveled_player2, 20)
                 self.obstacles2.remove(obstacle)  # Удаляем препятствие
                 break
+
         for wire in self.exposed_wires2[:]:  # Используем копию списка для безопасного удаления
             rect = wire.get_rect()
             if p2_rect.intersects(rect) and not self.player2.is_invincible:
