@@ -12,7 +12,7 @@ class Car:
         self.width = 384
         self.height = 768
 
-        self.x = randint(-50, 388)
+        self.x = randint(-50, 380)
         self.y = screen_height + self.height
 
         self.speed = 10
