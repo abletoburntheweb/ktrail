@@ -259,11 +259,11 @@ class GameScreenDuo(QWidget):
             separator_x = self.width() // 2 - separator_width // 2  # Центр экрана
             separator_rect = QRect(separator_x, 0, separator_width, self.height())
             self.painter.fillRect(separator_rect, self.separator_brush)
-            # Рисуем игроков
+            # Отрисовка света для игроков
             if self.player1.is_visible:
-                self.painter.fillRect(self.player1.get_rect(), self.player1_brush)
+                self.player1.draw_light(self.painter)  # Отрисовка света для player1
             if self.player2.is_visible:
-                self.painter.fillRect(self.player2.get_rect(), self.player2_brush)
+                self.player2.draw_light(self.painter)  # Отрисовка света для player2
             # Отрисовка препятствий для player1 и player2
             for obstacle in self.obstacles1:
                 self.painter.fillRect(obstacle.get_rect(), self.obstacle_brush)
@@ -386,9 +386,9 @@ class GameScreenDuo(QWidget):
         meters_this_frame_player2 = speed_player2 * self.speed_to_meters_coefficient
         # Учитываем штраф за столкновение или переполнение КЗ
         self.distance_traveled_player1 = max(0,
-                                            self.distance_traveled_player1 + meters_this_frame_player1 - self.player1.distance_penalty)
+                                             self.distance_traveled_player1 + meters_this_frame_player1 - self.player1.distance_penalty)
         self.distance_traveled_player2 = max(0,
-                                            self.distance_traveled_player2 + meters_this_frame_player2 - self.player2.distance_penalty)
+                                             self.distance_traveled_player2 + meters_this_frame_player2 - self.player2.distance_penalty)
         # Сбрасываем штраф после применения
         self.player1.distance_penalty = 0
         self.player2.distance_penalty = 0
@@ -455,6 +455,11 @@ class GameScreenDuo(QWidget):
             self.fps = self.frame_count / elapsed_time
             self.frame_count = 0
             self.last_fps_update_time = current_time
+        # Обновление прогресс-баров
+        short_circuit_level_player1 = self.player1.get_short_circuit_level()
+        short_circuit_level_player2 = self.player2.get_short_circuit_level()
+        self.short_circuit_bar_player1.setValue(int(short_circuit_level_player1))
+        self.short_circuit_bar_player2.setValue(int(short_circuit_level_player2))
         self.update()
 
     def update_trail(self, player, trail, current_trail_x, target_trail_x, color):
@@ -532,9 +537,12 @@ class GameScreenDuo(QWidget):
 
     def handle_collision(self, player, distance_traveled, penalty):
         """Обработка столкновения для указанного игрока."""
-        player.apply_collision_penalty(penalty)  # Применяем штраф
+        player.apply_collision_penalty(penalty)  # Применяем штраф (откидываем на 20 метров)
         distance_traveled -= penalty  # Отбрасываем игрока назад
         player.enable_invincibility(5000)  # Включаем неуязвимость на 5 секунд
+        player.short_circuit_level = 0  # Сбрасываем уровень КЗ до нуля
+        player.current_speed_index = 0  # Сбрасываем скорость до минимальной (уровень 1)
+        player.speed = player.speed_levels[player.current_speed_index]  # Обновляем текущую скорость
 
     def show_victory(self, winner=""):
         """Показ экрана победы."""

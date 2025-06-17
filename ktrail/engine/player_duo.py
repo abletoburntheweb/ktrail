@@ -1,4 +1,5 @@
 from PyQt5.QtCore import Qt, QRect, QTimer
+from PyQt5.QtGui import QColor, QRadialGradient
 
 
 class PlayerDuo:
@@ -51,6 +52,28 @@ class PlayerDuo:
         self.blink_timer.timeout.connect(self.toggle_visibility)
         self.is_visible = True  # Флаг видимости для мигания
         self.distance_penalty = 0  # Штраф за столкновение (в метрах)
+
+        self.light_radius = 120  # Радиус светового эффекта
+        self.light_color = QColor("#ff6b6b") if player_id == 1 else QColor("#4aa0fc")  # Цвет света для player1 и player2 соответственно
+        self.is_light_on = True  # Флаг для управления светом
+
+    def draw_light(self, painter):
+        """
+        Отрисовка света вокруг игрока.
+        :param painter: QPainter для отрисовки.
+        """
+        if self.is_light_on:
+            light_pos_x = self.x + self.size // 2
+            light_pos_y = self.y + self.size // 2
+            gradient = QRadialGradient(light_pos_x, light_pos_y, self.light_radius)
+            gradient.setColorAt(0, self.light_color)
+            gradient.setColorAt(1, QColor(255, 240, 200, 0))
+            painter.setBrush(gradient)
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(light_pos_x - self.light_radius,
+                                light_pos_y - self.light_radius,
+                                self.light_radius * 2,
+                                self.light_radius * 2)
 
     def move(self, key):
         """Обработка движения игрока."""
