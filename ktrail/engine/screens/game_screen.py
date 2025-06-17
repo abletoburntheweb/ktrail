@@ -343,8 +343,7 @@ class GameScreen(QWidget):
             self.tile_manager.draw_tiles(self.painter)
             # 2. Отрисовка машин
             for car in self.cars:
-                if car and car.texture:
-                    self.painter.drawPixmap(car.x, car.y, car.texture)
+                car.draw(self.painter)
             # 3. Накладываем градиент дня/ночи
             gradient = self.day_night.get_background_gradient(self.height())
             if gradient:
