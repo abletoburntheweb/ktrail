@@ -223,7 +223,7 @@ class MainMenu(QWidget):
 
     def restore_positions(self):
         self.gradient_label.move(0, 0)
-        self.title_label.move(225, 220)
+        self.title_label.move(10, 220)
         b_x = 25
         b_y = 450
         self.start_button.move(b_x, b_y)
