@@ -74,19 +74,7 @@ class GameScreen(QWidget):
             screen_width=self.width(),
             screen_height=self.height()
         )
-        # Добавляем типы тайлов
-        self.tile_manager.add_tile_type(
-            "asphalt",
-            [
-                "assets/textures/asf.png",
-                "assets/textures/dev_w.png",
-                "assets/textures/dev_g.png"
-            ],
-            weights=[5, 3, 2]  # Частота появления текстур
-        )
-        self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
-        self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
-        self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
+        self.tile_manager.load_default_tile_types()
         # Создаём начальные тайлы
         self.tile_manager.init_tiles()
         # Игрок
