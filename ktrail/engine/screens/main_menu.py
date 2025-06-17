@@ -53,7 +53,7 @@ class MainMenu(QWidget):
         """)
 
         # Заголовок
-        self.title_label = self.create_label("Ktrail", font_size=96, bold=True, x=225, y=220, w=600, h=150)
+        self.title_label = self.create_label("|Ktrail", font_size=96, bold=True, x=10, y=220, w=600, h=150)
 
         # Кнопки
         self.start_button = self.create_button("Начать игру", self.start_game, x=self.b_x, y=self.b_y, w=750, h=55)
@@ -182,7 +182,7 @@ class MainMenu(QWidget):
 
     def create_label(self, text, font_size=18, bold=False, x=0, y=0, w=200, h=50):
         label = QLabel(text, self)
-        font = QFont("Montserrat", font_size)
+        font = QFont("Consolas", font_size)
         if bold:
             font.setBold(True)
         label.setFont(font)

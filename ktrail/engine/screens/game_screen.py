@@ -10,6 +10,8 @@ from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower,
 from engine.powerups import SpeedBoost
 from engine.tile_manager import TileManager
 
+from engine.rotating_panel import RotatingPanel
+
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -653,7 +655,9 @@ class GameScreen(QWidget):
             if self.parent:
                 self.parent.stop_music()  # Безопасная остановка
                 self.parent.play_music(self.parent.menu_music_path)  # Безопасный запуск
-                self.parent.setCurrentWidget(self.parent.main_menu)
+                QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
+                QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
+                QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
 
     def show_game_over(self):
         """Показ экрана 'Конец игры'."""
@@ -673,7 +677,9 @@ class GameScreen(QWidget):
             self.update()
         else:
             if self.parent:
-                self.parent.setCurrentWidget(self.parent.main_menu)
+                QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
+                QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
+                QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
 
     def reset_game(self):
         """Сброс состояния игры и полный рестарт."""
