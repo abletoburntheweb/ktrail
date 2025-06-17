@@ -97,6 +97,12 @@ class Player:
         """
         return self.speed
 
+    def get_current_speed_level(self):
+        """
+        Возвращает уровень скорости (индекс + 1).
+        """
+        return self.current_speed_index + 1  # Уровень скорости начинается с 1
+
     def get_short_circuit_level(self):
         """
         Возвращает текущий уровень КЗ.
