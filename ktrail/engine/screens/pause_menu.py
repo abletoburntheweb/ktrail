@@ -201,3 +201,17 @@ class PauseMenu(QWidget):
             QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
             QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
             QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
+
+    def keyPressEvent(self, event):
+        """Обработка нажатия клавиш."""
+        if event.key() == Qt.Key_Escape:
+            if self.is_settings_open:
+                # Если настройки открыты, закрываем их
+                self.close_settings()
+                self.parent.play_cancel_sound()
+            else:
+                # Если настройки закрыты, продолжаем игру
+                self.continue_game()
+                self.parent.play_select_sound()
+        else:
+            super().keyPressEvent(event)

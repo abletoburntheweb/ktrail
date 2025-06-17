@@ -348,6 +348,17 @@ class MainMenu(QWidget):
         if self.parent:
             self.parent.exit_game()
 
+    def keyPressEvent(self, event):
+        """Обработка нажатия клавиш."""
+        if event.key() == Qt.Key_Escape:
+            if self.is_leaderboard_open:
+                self.close_leaderboard()
+                self.parent.play_cancel_sound()
+            elif self.is_settings_open:
+                self.close_settings()
+                self.parent.play_cancel_sound()
+        else:
+            super().keyPressEvent(event)
     def disable_buttons(self):
         for btn in [self.start_button, self.start_duo_button, self.leaderboard_button, self.settings_button, self.exit_button]:
             btn.setDisabled(True)
