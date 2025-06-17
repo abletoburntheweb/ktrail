@@ -1,104 +1,91 @@
-# engine/screens/distance_selection.py
-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QGraphicsOpacityEffect
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QApplication
 from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import Qt, QTimer, QEasingCurve, QPropertyAnimation
-from engine.rotating_panel import RotatingPanel  # <- убедись, что путь правильный
+from PyQt5.QtCore import Qt
 
 
 class DistanceSelection(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, is_duo=False, y_duo=568, y_single=390):
         super().__init__(parent)
         self.parent = parent
-        self.is_duo = False
-        self.widgets_to_animate = []  # Для кнопок и заголовка
+        self.is_duo = is_duo
+        self.y_duo = y_duo
+        self.y_single = y_single
         self.init_ui()
 
     def init_ui(self):
         self.setWindowTitle("Выбор дистанции")
         self.setFixedSize(1920, 1080)
 
-        self.layout = QVBoxLayout()
-        self.layout.setAlignment(Qt.AlignCenter)
-        self.setLayout(self.layout)
+        # Определяем фон и список городов в зависимости от режима
+        if self.is_duo:
+            bg_image = "assets/textures/cus2.png"
+            cities = [
+                {"name": "Сосновка", "distance": 25000},
+                {"name": "Матвеево", "distance": 30000},
+                {"name": "Верхняя Тойма", "distance": 35000},
+                {"name": "Нижняя Тойма", "distance": 38000}
+            ]
+            start_x = 416  # Начальная позиция по оси X для двойного режима
+            start_y = self.y_duo
+        else:
+            bg_image = "assets/textures/cus.png"
+            cities = [
+                {"name": "Лянгасово", "distance": 25000},
+                {"name": "Сосновка", "distance": 30000},
+                {"name": "Мухино", "distance": 45000},
+                {"name": "Сулово", "distance": 58000}
+            ]
+            start_x = 612  # Начальная позиция по оси X для одиночного режима
+            start_y = self.y_single
 
-        self.title_label = QLabel("Выберите дистанцию:")
-        self.title_label.setFont(QFont("Arial", 36, QFont.Bold))
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.hide()
-        self.layout.addWidget(self.title_label)
-        self.widgets_to_animate.append(self.title_label)
+        x_offset = 284  # Смещение между кнопками по оси X
 
-        distances = [200, 500, 1000]
-        self.distance_buttons = []
-        for distance in distances:
-            button = QPushButton(f"{distance} м")
-            button.setFont(QFont("Arial", 24))
-            button.clicked.connect(lambda _, d=distance: self.start_game(d))
-            button.hide()
-            self.layout.addWidget(button)
-            self.distance_buttons.append(button)
-            self.widgets_to_animate.append(button)
+        # Фоновая сетка
+        self.grid_label = QLabel(self)
+        self.grid_label.setPixmap(QPixmap(bg_image))
+        self.grid_label.resize(self.size())
+        self.grid_label.move(0, 0)
+        self.grid_label.show()
+        self.grid_label.raise_()
 
-        self.back_button = QPushButton("Назад")
+        for i, city in enumerate(cities):
+            # Вычисляем позицию X для текущей кнопки
+            current_x = start_x + i * (100 + x_offset)  # 100 — ширина кнопки, x_offset — дополнительное смещение
+
+            # Создаем круглую кнопку (кружок)
+            circle_button = QPushButton(city["name"], self)  # Указываем родительский виджет (self)
+            circle_button.setFont(QFont("Arial", 18))
+            circle_button.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(90, 75, 60, 102); /* Синий фон с 50% прозрачностью */
+                    border-radius: 50%; /* Круглая форма */
+                    padding: 20px;
+                    color: white; /* Белый текст */
+                }
+                QPushButton:hover {
+                    background-color: rgba(70, 60, 50, 140);  /* Темно-синий фон при наведении */
+                }
+            """)
+            circle_button.setGeometry(current_x, start_y, 120, 120)
+            circle_button.clicked.connect(lambda _, d=city["distance"]: self.start_game(d))
+
+        # Кнопка "Назад"
+        self.back_button = QPushButton("Назад", self)  # Указываем родительский виджет (self)
         self.back_button.setFont(QFont("Arial", 18))
         self.back_button.clicked.connect(self.go_back)
-        self.back_button.hide()
-        self.layout.addWidget(self.back_button)
-        self.widgets_to_animate.append(self.back_button)
+        self.back_button.setGeometry(300, 200, 200, 50)  # Устанавливаем размер и позицию
 
-    def showEvent(self, event):
-        """Вызывается при показе виджета"""
-        super().showEvent(event)
-        # Скрываем все элементы перед анимацией
-        for widget in self.widgets_to_animate:
-            widget.hide()
-        # Запускаем анимацию сборки через RotatingPanel
-        RotatingPanel.assemble_transition(
-            self,
-            on_finished=self.on_animation_finished,
-            background_path="assets/textures/cus.png"
-        )
+    def reset_ui(self):
+        # Очищаем старые виджеты
+        for child in self.children():
+            if isinstance(child, QPushButton) and child != self.back_button:
+                child.deleteLater()
 
-    def on_animation_finished(self):
-        self.temp_background = QLabel(self)
-        dev_g_pixmap = QPixmap("assets/textures/cus.png")
-        scaled = dev_g_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        self.temp_background.setPixmap(scaled)
-        self.temp_background.resize(self.size())
-        self.temp_background.move(0, 0)
-        self.temp_background.show()
-        self.temp_background.raise_()
-
-        for widget in self.widgets_to_animate:
-            effect = QGraphicsOpacityEffect(widget)
-            widget.setGraphicsEffect(effect)
-
-            anim = QPropertyAnimation(effect, b"opacity")
-            anim.setDuration(500)
-            anim.setStartValue(0)
-            anim.setEndValue(1)
-            anim.setEasingCurve(QEasingCurve.OutCubic)
-            widget.anim = anim
-            anim.start()
-            widget.show()
-
-            widget.raise_()
-            self.enable_buttons()
-
-    def disable_buttons(self):
-        for widget in self.widgets_to_animate:
-            if isinstance(widget, QPushButton):
-                widget.setDisabled(True)
-
-    def enable_buttons(self):
-        for widget in self.widgets_to_animate:
-            if isinstance(widget, QPushButton):
-                widget.setDisabled(False)
-
+        # Переинициализируем UI с текущим режимом (is_duo)
+        self.init_ui()
     def start_game(self, distance):
         if self.parent:
-            if self.is_duo == False:
+            if not self.is_duo:
                 self.parent.game_screen.reset_game()
                 self.parent.game_screen.set_target_distance(distance)
                 self.parent.setCurrentWidget(self.parent.game_screen)
@@ -106,12 +93,8 @@ class DistanceSelection(QWidget):
                 self.parent.game_screen_duo.reset_game()
                 self.parent.game_screen_duo.set_target_distance(distance)
                 self.parent.setCurrentWidget(self.parent.game_screen_duo)
-            self.is_duo = False
 
     def go_back(self):
         if self.parent:
             self.parent.play_cancel_sound()
-            self.disable_buttons()
-            QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
-            QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
-            QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
+            self.parent.setCurrentWidget(self.parent.main_menu)

@@ -258,7 +258,7 @@ class GameScreen(QWidget):
         :param distance_traveled: Пройденное расстояние (в метрах).
         :param target_distance: Целевая дистанция (в метрах).
         """
-        text = f"{int(distance_traveled)}"
+        text = f"{int(distance_traveled)} м / {self.target_distance} м" # text = f"{int(distance_traveled)}"
         self.distance_label.setText(text)
 
     def update_time_text(self, elapsed_time):

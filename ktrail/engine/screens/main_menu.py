@@ -195,8 +195,9 @@ class MainMenu(QWidget):
         print("Переход к выбору дистанции...")
         self.disable_buttons()
         self.parent.distance_selection.is_duo = False
+        self.parent.distance_selection.reset_ui()  # Переинициализация UI
         self.animate_left_panel_out()
-        self.current_mode = "single"  # Устанавливаем режим на одиночный
+        self.current_mode = "single"
 
     def animate_left_panel_out(self):
         widgets_to_move = [
@@ -243,9 +244,10 @@ class MainMenu(QWidget):
     def start_duo(self):
         print("Переход к дуо...")
         self.disable_buttons()
-        self.animate_left_panel_out()
         self.parent.distance_selection.is_duo = True
-        self.current_mode = "duo"  # Устанавливаем режим на дуо
+        self.parent.distance_selection.reset_ui()  # Переинициализация UI
+        self.animate_left_panel_out()
+        self.current_mode = "duo"
 
     def open_leaderboard(self):
         """Открытие или закрытие таблицы рекордов."""
@@ -266,6 +268,7 @@ class MainMenu(QWidget):
 
         # Создаем прозрачный слой, если его еще нет
         if not self.overlay:
+            print("Создание overlay в главном меню...")
             self.overlay = QWidget(self)
             self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана
             self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
@@ -273,12 +276,14 @@ class MainMenu(QWidget):
 
         # Создаем виджет таблицы рекордов
         if not self.leaderboard_widget:
+            print("Создание виджета таблицы рекордов в главном меню...")
             self.leaderboard_widget = LeaderboardScreen(parent=self.parent)
             self.leaderboard_widget.setParent(self.overlay)  # Размещаем настройки на overlay
             self.leaderboard_widget.move(50, 240)  # Центрируем по вертикали и горизонтали
             self.leaderboard_widget.setFixedSize(1020, 600)
 
         # Показываем overlay и виджет таблицы рекордов
+        print("Показ overlay и виджета таблицы рекордов...")
         self.overlay.show()
         self.leaderboard_widget.show()
         self.is_leaderboard_open = True  # Устанавливаем флаг, что таблица рекордов открыта

@@ -1,6 +1,5 @@
 import json
-
-from PyQt5.QtCore import Qt, QPointF, QTimer
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QPushButton, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
@@ -13,6 +12,7 @@ class LeaderboardScreen(QWidget):
         self.previous_screen = None  # Атрибут для хранения предыдущего экрана
         self.overlay = None  # Прозрачный слой для модального окна
         self.leaderboard_widget = None  # Виджет таблицы рекордов
+        self.current_distance = 200  # Начальная дистанция по умолчанию
         self.init_ui()
 
     def init_ui(self):
@@ -30,7 +30,8 @@ class LeaderboardScreen(QWidget):
         self.distance_combo = QComboBox()
         self.distance_combo.setFont(QFont("Montserrat", 18))
         self.distance_combo.addItems(["200 м", "500 м", "1000 м", "2000 м"])
-        self.distance_combo.currentIndexChanged.connect(self.update_leaderboard)
+        self.distance_combo.setCurrentText(f"{self.current_distance} м")  # Устанавливаем начальное значение
+        self.distance_combo.currentIndexChanged.connect(self.update_leaderboard_from_combo)
         self.distance_combo.setStyleSheet("""
             QComboBox {
                 color: white;
@@ -65,14 +66,11 @@ class LeaderboardScreen(QWidget):
         self.leaderboard_table.setFont(QFont("Montserrat", 16))
         self.leaderboard_table.horizontalHeader().setStretchLastSection(True)
         self.leaderboard_table.verticalHeader().setVisible(False)  # Скрываем вертикальные заголовки
-
         # Отключаем выделение ячеек
         self.leaderboard_table.setSelectionMode(QTableWidget.NoSelection)
-
         # Настройка ширины столбцов
         self.leaderboard_table.setColumnWidth(0, 150)  # Ширина первого столбца ("Место")
         self.leaderboard_table.setColumnWidth(1, 250)  # Ширина второго столбца ("Время")
-
         # Настройка скроллбара
         self.leaderboard_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.leaderboard_table.verticalScrollBar().setStyleSheet("""
@@ -96,7 +94,6 @@ class LeaderboardScreen(QWidget):
                 background: none;
             }
         """)
-
         # Стилизация таблицы
         self.leaderboard_table.setStyleSheet("""
             QTableWidget {
@@ -178,7 +175,7 @@ class LeaderboardScreen(QWidget):
         self.fade(self.leaderboard_widget, duration=600)
 
         # Обновляем таблицу рекордов при открытии
-        self.update_leaderboard()
+        self.update_leaderboard(self.current_distance)  # Явно передаем начальную дистанцию
 
     def close_leaderboard(self):
         """Закрытие экрана рекордов."""
@@ -196,7 +193,6 @@ class LeaderboardScreen(QWidget):
         animation.setStartValue(1 if hide_after else 0)
         animation.setEndValue(0 if hide_after else 1)
         animation.start()
-
         if hide_after:
             animation.finished.connect(widget.hide)
 
@@ -204,10 +200,13 @@ class LeaderboardScreen(QWidget):
         """Устанавливает предыдущий экран."""
         self.previous_screen = screen_name
 
-    def update_leaderboard(self):
-        """Обновление таблицы рекордов на основе выбранной дистанции."""
-        selected_distance = self.distance_combo.currentText()  # Например, "200 м"
-        distance = int(selected_distance.split()[0])  # Извлекаем число (например, 200)
+    def update_leaderboard(self, distance=None):
+        """
+        Обновление таблицы рекордов на основе выбранной дистанции.
+        :param distance: Дистанция (в метрах). Если None, используется self.current_distance.
+        """
+        if distance is None:
+            distance = self.current_distance
 
         # Получаем данные из файла рекордов
         records = self.load_records(distance)
@@ -220,11 +219,9 @@ class LeaderboardScreen(QWidget):
             self.leaderboard_table.insertRow(i)  # Добавляем строку
             place_item = QTableWidgetItem(str(i + 1))  # Место
             time_item = QTableWidgetItem(f"{time:.2f} сек")  # Время
-
             # Отключаем возможность редактирования
             place_item.setFlags(place_item.flags() & ~Qt.ItemIsEditable)
             time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
-
             # Подсветка первых трех мест
             if i == 0:  # Золото
                 place_item.setBackground(QColor(255, 215, 0, 100))  # Золотая подсветка
@@ -235,13 +232,18 @@ class LeaderboardScreen(QWidget):
             elif i == 2:  # Бронза
                 place_item.setBackground(QColor(205, 127, 50, 100))  # Бронзовая подсветка
                 time_item.setBackground(QColor(205, 127, 50, 100))
-
             # Устанавливаем элементы в таблицу
             self.leaderboard_table.setItem(i, 0, place_item)  # Место
             self.leaderboard_table.setItem(i, 1, time_item)  # Время
 
         # Прокручиваем таблицу до начала
         self.leaderboard_table.scrollToTop()
+
+    def update_leaderboard_from_combo(self):
+        """Обновление таблицы рекордов при изменении значения в выпадающем списке."""
+        selected_distance = self.distance_combo.currentText()
+        self.current_distance = int(selected_distance.split()[0])  # Извлекаем число
+        self.update_leaderboard(self.current_distance)
 
     def load_records(self, distance):
         """
