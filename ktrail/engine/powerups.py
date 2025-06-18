@@ -69,29 +69,34 @@ class SpeedBoost(PowerUp):
         self.original_current_speed_index = None  # Для сохранения текущего индекса скорости
         self.color = QColor("#00FF00")  # Зеленый цвет
 
-    def activate(self, player):
+    def activate(self, player, game_screen):
         """
         Активация бустера скорости.
         :param player: Экземпляр игрока.
+        :param game_screen: Экземпляр игрового экрана (GameScreen).
         """
         if not self.is_active:
             self.is_active = True
             # Сохраняем исходные данные о скорости
             self.original_speed_levels = player.speed_levels[:]
-            self.original_current_speed_index = player.current_speed_index  # Сохраняем текущий индекс
+            self.original_current_speed_index = player.current_speed_index
             # Устанавливаем фиксированную скорость 30 м/с
-            player.speed_levels = [30]  # Только один уровень скорости
-            player.current_speed_index = 0  # Фиксируем индекс скорости
-            player.speed = 30  # Обновляем текущую скорость
-            player.can_change_speed = False  # Блокируем изменение скорости
+            player.speed_levels = [30]
+            player.current_speed_index = 0
+            player.speed = 30
+            player.can_change_speed = False
+            # Показываем green_stage
+            if hasattr(game_screen, "toggle_green_stage"):
+                game_screen.toggle_green_stage(True)
             # Запускаем таймер для деактивации
-            self.timer.timeout.connect(lambda: self.deactivate(player))
+            self.timer.timeout.connect(lambda: self.deactivate(player, game_screen))
             self.timer.start(self.duration)
 
-    def deactivate(self, player):
+    def deactivate(self, player, game_screen):
         """
         Деактивация бустера скорости.
         :param player: Экземпляр игрока.
+        :param game_screen: Экземпляр игрового экрана (GameScreen).
         """
         if self.is_active:
             self.is_active = False
@@ -102,4 +107,8 @@ class SpeedBoost(PowerUp):
             # Обновляем текущую скорость на основе восстановленного индекса
             player.speed = player.speed_levels[player.current_speed_index]
             player.can_change_speed = True  # Разблокируем изменение скорости
+            # Скрываем green_stage
+            if hasattr(game_screen, "toggle_green_stage"):
+                game_screen.toggle_green_stage(False)
+            # Останавливаем таймер
             self.timer.stop()

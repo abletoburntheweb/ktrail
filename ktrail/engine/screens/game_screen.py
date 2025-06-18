@@ -17,38 +17,18 @@ class GameScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.start_time = None  # Время начала игры
-        self.elapsed_time = 0  # Затраченное время (в секундах)
-        # Добавляем переменные для расчета FPS
+        self.start_time = None
+        self.elapsed_time = 0
         self.frame_count = 0
         self.fps = 0
         self.last_fps_update_time = perf_counter()
         self.show_fps = self.parent.settings.get("show_fps", True)
-        # Прогресс-бар для шкалы КЗ
-        self.short_circuit_bar = QProgressBar(self)
-        self.short_circuit_bar.setGeometry(10, 10, 300, 20)  # Размеры прогресс-бара
-        self.short_circuit_bar.setMaximum(100)  # Максимальное значение
-        self.short_circuit_bar.setValue(0)  # Начальное значение
-        self.short_circuit_bar.setTextVisible(False)  # Отключаем текст
-        self.short_circuit_bar.setStyleSheet("""
-                    QProgressBar {
-                        border: 1px solid white;
-                        border-radius: 5px;
-                        background-color: rgba(0, 0, 0, 100);
-                    }
-                    QProgressBar::chunk {
-                        background-color: red;
-                        border-radius: 5px;
-                    }
-                """)
-        self.short_circuit_bar.show()
         # Инициализация системы дня и ночи
         self.day_night = DayNightSystem()
-        self.target_distance = 0  # Целевая дистанция
-        self.distance_traveled = 0  # Пройденная дистанция
+        self.target_distance = 0
+        self.distance_traveled = 0
         self.speed_to_meters_coefficient = 0.01
         self.speed = 10
-        # Инициализация side_panel_label
         self.side_panel_label = QLabel(self)
         self.side_panel_pixmap = QPixmap("assets/textures/side_panel.png")  # Укажите правильный путь к файлу
         if self.side_panel_pixmap.isNull():
@@ -57,16 +37,12 @@ class GameScreen(QWidget):
             self.side_panel_label.setPixmap(self.side_panel_pixmap)
             self.side_panel_label.setAlignment(Qt.AlignTop | Qt.AlignRight)
             self.side_panel_label.setScaledContents(True)  # Растягиваем изображение
-            # Отладочная информация
-            print(f"Size of side_panel_pixmap: {self.side_panel_pixmap.size()}")
-            print(f"Size of side_panel_label: {self.side_panel_label.size()}")
 
         self.init_ui()
-        # Параметры для тайлов
+
         self.tile_size = 192
         self.rows = 6
         self.columns = 10
-        # Инициализация TileManager
         self.tile_manager = TileManager(
             tile_size=self.tile_size,
             rows=self.rows,
@@ -77,7 +53,6 @@ class GameScreen(QWidget):
         self.tile_manager.load_default_tile_types()
         # Создаём начальные тайлы
         self.tile_manager.init_tiles()
-        # Игрок
         self.player = Player()
         # Опоры ЛЭП
         self.transmission_towers = []
@@ -163,28 +138,15 @@ class GameScreen(QWidget):
         self.time_label.setStyleSheet("color: red; font-size: 18px;")
         self.time_label.setGeometry(220, 230, 100, 40)  # Явные размеры
 
-        # Создание вертикального прогресс-бара для КЗ
-        self.short_circuit_bar = QProgressBar(self.side_panel_container)
-        self.short_circuit_bar.setOrientation(Qt.Vertical)  # Вертикальная ориентация
-        self.short_circuit_bar.setStyleSheet("""
-            QProgressBar {
-                border: none;
-                background-color: transparent;
-                width: 20px;
-            }
-            QProgressBar::chunk {
-                background-color: red;
-                height: 10px;
-                margin-bottom: 5px;
-                border-radius: 2px;
-            }
-        """)
-        self.short_circuit_bar.setMaximum(100)  # Максимальное значение
-        self.short_circuit_bar.setValue(0)  # Начальное значение
-        self.short_circuit_bar.setTextVisible(False)  # Отключаем текст
-        self.short_circuit_bar.setGeometry(97, 10, 60,
-                                           70)  # X, Y, Width, Height (те же значения, что и у красного прямоугольника)
-        self.short_circuit_bar.show()
+        # Инициализация параметров для отображения стадий КЗ
+        self.short_circuit_rect = {
+            'x': 95,  # Координата X зоны отображения
+            'y': 60,  # Координата Y зоны отображения
+            'width': 60,  # Ширина зоны
+            'height': 70  # Высота зоны
+        }
+        self.short_circuit_labels = []  # Список для хранения меток изображений
+
         # Инициализация списка для хранения speed_image_labels
         self.speed_image_labels = []
 
@@ -248,14 +210,26 @@ class GameScreen(QWidget):
         time_text = f"{elapsed_time:.1f}"
         self.time_label.setText(time_text)
 
-    def update_short_circuit_bar(self):
+    def update_short_circuit_images(self, progress):
         """
-        Обновляет значение вертикального прогресс-бара для КЗ.
+        Обновляет изображения стадий КЗ в зависимости от прогресса.
+        :param progress: Текущий уровень КЗ (в процентах).
         """
-        # Получаем текущий уровень КЗ игрока
-        short_circuit_level = self.player.get_short_circuit_level()
-        # Устанавливаем значение прогресс-бара
-        self.short_circuit_bar.setValue(int(short_circuit_level))
+        # Очищаем предыдущие изображения
+        for label in self.short_circuit_labels:
+            label.deleteLater()
+        self.short_circuit_labels.clear()
+
+        # Добавляем новые изображения в зависимости от прогресса
+        if progress >= 40 and progress < 60:
+            self.add_short_circuit_image("assets/textures/f_stage.png")
+        elif progress >= 60 and progress < 80:
+            self.add_short_circuit_image("assets/textures/f_stage.png")
+            self.add_short_circuit_image("assets/textures/s_stage.png")
+        elif progress >= 80:
+            self.add_short_circuit_image("assets/textures/f_stage.png")
+            self.add_short_circuit_image("assets/textures/s_stage.png")
+            self.add_short_circuit_image("assets/textures/t_stage.png")
 
     def add_speed_image(self):
         """Добавляет новое изображение speed.png."""
@@ -293,15 +267,83 @@ class GameScreen(QWidget):
 
         # Важно: Показываем элемент явно
         speed_image_label.show()
+    def add_short_circuit_image(self, image_path):
+        """
+        Добавляет изображение стадии КЗ на панель.
+        :param image_path: Путь к изображению.
+        """
+        short_circuit_image_label = QLabel(self.side_panel_container)
+        short_circuit_image_pixmap = QPixmap(image_path)
 
-    def remove_speed_image(self):
-        """Удаляет последнее изображение speed.png."""
-        if not self.speed_image_labels:
+        if short_circuit_image_pixmap.isNull():
+            print(f"Ошибка: Изображение {image_path} не загружено!")
             return
 
-        # Удаляем последний элемент из списка
+        short_circuit_image_label.setPixmap(short_circuit_image_pixmap)
+        short_circuit_image_label.setScaledContents(False)
+
+        image_width = short_circuit_image_pixmap.width()
+        image_height = short_circuit_image_pixmap.height()
+
+        base_x = self.short_circuit_rect['x']
+        base_y = self.short_circuit_rect['y']
+
+        if len(self.short_circuit_labels) == 0:
+            y_position = base_y
+        else:
+            last_label = self.short_circuit_labels[-1]
+            y_position = last_label.y() - image_height
+
+        short_circuit_image_label.setGeometry(
+            base_x,
+            y_position,
+            image_width,
+            image_height
+        )
+
+        self.short_circuit_labels.append(short_circuit_image_label)
+        short_circuit_image_label.show()
+
+    def toggle_green_stage(self, activate):
+        """
+        Показывает или скрывает изображение green_stage.
+        :param activate: True - показать, False - скрыть.
+        """
+        if activate:
+            print("Green stage activated")
+            if not hasattr(self, "green_stage_label") or self.green_stage_label is None:
+                self.green_stage_label = QLabel(self.side_panel_container)
+                green_stage_pixmap = QPixmap("assets/textures/green_stage.png")
+                if green_stage_pixmap.isNull():
+                    print("Ошибка: Изображение green_stage.png не загружено!")
+                    return
+
+                self.green_stage_label.setPixmap(green_stage_pixmap)
+                self.green_stage_label.setScaledContents(False)
+
+                image_width = green_stage_pixmap.width()
+                image_height = green_stage_pixmap.height()
+
+                self.green_stage_label.setGeometry(195, 20, image_width, image_height)
+                self.green_stage_label.show()
+        else:
+            print("Green stage deactivated")
+            if hasattr(self, "green_stage_label") and self.green_stage_label is not None:
+                self.green_stage_label.hide()  # Скрываем немедленно
+                self.green_stage_label.deleteLater()  # Помечаем для удаления
+                self.green_stage_label = None
+
+    def remove_speed_image(self):
+        if not self.speed_image_labels:
+            return
         last_label = self.speed_image_labels.pop()
-        last_label.deleteLater()  # Удаляем виджет
+        last_label.deleteLater()
+
+        if hasattr(self, "green_stage_label") and self.green_stage_label is not None:
+            current_y = 20
+            for label in self.speed_image_labels:
+                current_y -= label.height()
+            self.green_stage_label.move(195, current_y)
 
     def paintEvent(self, event):
         try:
@@ -463,8 +505,9 @@ class GameScreen(QWidget):
         # Обновляем текст для затраченного времени
         self.update_time_text(self.elapsed_time)
 
-        # Обновляем прогресс-бар КЗ
-        self.update_short_circuit_bar()
+        # Обновляем изображения КЗ
+        short_circuit_level = self.player.get_short_circuit_level()
+        self.update_short_circuit_images(short_circuit_level)
 
         # Обновление изображений speed.png
         current_speed_level = self.player.get_current_speed_level()  # Получаем уровень скорости
@@ -479,14 +522,14 @@ class GameScreen(QWidget):
         while current_image_count > current_speed_level - 1:  # Уровень скорости минус 1
             self.remove_speed_image()
             current_image_count -= 1
+
         # Плавное обновление координаты X трейла
         if self.current_trail_x != self.target_trail_x:
             delta = self.target_trail_x - self.current_trail_x
             step = delta / self.trail_transition_speed
             self.current_trail_x += step
 
-
-        num_points =1
+        num_points = 1
         for i in range(num_points):
             factor = i / num_points  # Коэффициент интерполяции
             interpolated_x = int(self.current_trail_x + (self.target_trail_x - self.current_trail_x) * factor)
@@ -544,13 +587,17 @@ class GameScreen(QWidget):
         player_rect = self.player.get_rect()
         for powerup in self.active_powerups[:]:
             if player_rect.intersects(powerup.get_rect()):
-                powerup.activate(self.player)  # Активируем паверап
-                self.active_powerups.remove(powerup)  # Удаляем паверап после активации
+                powerup.activate(self.player, self)  # Передаем self как game_screen
+                self.active_powerups.remove(powerup)
+
+                # Если активирован SpeedBoost, показываем green_stage
+                if isinstance(powerup, SpeedBoost):
+                    self.toggle_green_stage(True)
+                    # Запускаем таймер для деактивации green_stage
+                    QTimer.singleShot(powerup.duration * 1000, lambda: self.toggle_green_stage(False))
 
         # Удаление ушедших за экран паверапов
         self.active_powerups = [pu for pu in self.active_powerups if not pu.is_off_screen(self.height())]
-
-        self.short_circuit_bar.setValue(int(self.player.get_short_circuit_level()))
 
         # Обновление позиций тайлов
         self.tile_manager.update_tiles(self.player.speed)
