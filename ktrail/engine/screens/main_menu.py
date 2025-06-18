@@ -53,7 +53,7 @@ class MainMenu(QWidget):
         """)
 
         # Заголовок
-        self.title_label = self.create_label("|Ktrail", font_size=96, bold=True, x=10, y=220, w=600, h=150)
+        self.title_label = self.create_label("|Ktrail", font_size=96, bold=True, x=0, y=220, w=750, h=150)
 
         # Кнопки
         self.start_button = self.create_button("Начать игру", self.start_game, x=self.b_x, y=self.b_y, w=750, h=55)
@@ -195,9 +195,8 @@ class MainMenu(QWidget):
         print("Переход к выбору дистанции...")
         self.disable_buttons()
         self.parent.distance_selection.is_duo = False
-        self.parent.distance_selection.reset_ui()  # Переинициализация UI
         self.animate_left_panel_out()
-        self.current_mode = "single"
+        self.current_mode = "single"  # Устанавливаем режим на одиночный
 
     def animate_left_panel_out(self):
         widgets_to_move = [
@@ -224,7 +223,7 @@ class MainMenu(QWidget):
 
     def restore_positions(self):
         self.gradient_label.move(0, 0)
-        self.title_label.move(10, 220)
+        self.title_label.move(0, 220)
         b_x = 25
         b_y = 450
         self.start_button.move(b_x, b_y)
@@ -244,10 +243,9 @@ class MainMenu(QWidget):
     def start_duo(self):
         print("Переход к дуо...")
         self.disable_buttons()
-        self.parent.distance_selection.is_duo = True
-        self.parent.distance_selection.reset_ui()  # Переинициализация UI
         self.animate_left_panel_out()
-        self.current_mode = "duo"
+        self.parent.distance_selection.is_duo = True
+        self.current_mode = "duo"  # Устанавливаем режим на дуо
 
     def open_leaderboard(self):
         """Открытие или закрытие таблицы рекордов."""
@@ -268,7 +266,6 @@ class MainMenu(QWidget):
 
         # Создаем прозрачный слой, если его еще нет
         if not self.overlay:
-            print("Создание overlay в главном меню...")
             self.overlay = QWidget(self)
             self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана
             self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
@@ -276,14 +273,12 @@ class MainMenu(QWidget):
 
         # Создаем виджет таблицы рекордов
         if not self.leaderboard_widget:
-            print("Создание виджета таблицы рекордов в главном меню...")
             self.leaderboard_widget = LeaderboardScreen(parent=self.parent)
             self.leaderboard_widget.setParent(self.overlay)  # Размещаем настройки на overlay
             self.leaderboard_widget.move(50, 240)  # Центрируем по вертикали и горизонтали
             self.leaderboard_widget.setFixedSize(1020, 600)
 
         # Показываем overlay и виджет таблицы рекордов
-        print("Показ overlay и виджета таблицы рекордов...")
         self.overlay.show()
         self.leaderboard_widget.show()
         self.is_leaderboard_open = True  # Устанавливаем флаг, что таблица рекордов открыта
@@ -353,17 +348,6 @@ class MainMenu(QWidget):
         if self.parent:
             self.parent.exit_game()
 
-    def keyPressEvent(self, event):
-        """Обработка нажатия клавиш."""
-        if event.key() == Qt.Key_Escape:
-            if self.is_leaderboard_open:
-                self.close_leaderboard()
-                self.parent.play_cancel_sound()
-            elif self.is_settings_open:
-                self.close_settings()
-                self.parent.play_cancel_sound()
-        else:
-            super().keyPressEvent(event)
     def disable_buttons(self):
         for btn in [self.start_button, self.start_duo_button, self.leaderboard_button, self.settings_button, self.exit_button]:
             btn.setDisabled(True)
