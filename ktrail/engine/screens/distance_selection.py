@@ -1,68 +1,108 @@
 # engine/screens/distance_selection.py
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QGraphicsOpacityEffect
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QTimer, QEasingCurve, QPropertyAnimation
-from engine.rotating_panel import RotatingPanel  # <- убедись, что путь правильный
+from engine.rotating_panel import RotatingPanel
 
 
 class DistanceSelection(QWidget):
+    SOLO_DISTANCES = [25000, 30000, 45000, 58000]
+    DUO_DISTANCES = [20000, 30000, 35000, 38000]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
         self.is_duo = False
-        self.widgets_to_animate = []  # Для кнопок и заголовка
+        self.widgets_to_animate = []
+        self.distance_buttons = []
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("Выбор дистанции")
         self.setFixedSize(1920, 1080)
 
-        self.layout = QVBoxLayout()
-        self.layout.setAlignment(Qt.AlignCenter)
-        self.setLayout(self.layout)
-
-        self.title_label = QLabel("Выберите дистанцию:")
-        self.title_label.setFont(QFont("Arial", 36, QFont.Bold))
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.hide()
-        self.layout.addWidget(self.title_label)
-        self.widgets_to_animate.append(self.title_label)
-
-        distances = [200, 500, 1000]
         self.distance_buttons = []
-        for distance in distances:
-            button = QPushButton(f"{distance} м")
-            button.setFont(QFont("Arial", 24))
-            button.clicked.connect(lambda _, d=distance: self.start_game(d))
-            button.hide()
-            self.layout.addWidget(button)
-            self.distance_buttons.append(button)
-            self.widgets_to_animate.append(button)
 
-        self.back_button = QPushButton("Назад")
+        self.distance_buttons = []
+        for _ in range(4):
+            button = QPushButton("", self)
+            button.setFixedSize(120, 120)
+            button.hide()
+            self.widgets_to_animate.append(button)
+            self.distance_buttons.append(button)
+
+        self.back_button = QPushButton("Назад", self)
         self.back_button.setFont(QFont("Arial", 18))
+        self.back_button.setStyleSheet("""
+        QPushButton {
+            color: white;
+            background-color: rgba(255, 255, 255, 20);
+            border: 2px solid white;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 70)
+        }
+        """)
         self.back_button.clicked.connect(self.go_back)
         self.back_button.hide()
-        self.layout.addWidget(self.back_button)
         self.widgets_to_animate.append(self.back_button)
 
+    def update_distance_buttons(self):
+        distances = self.DUO_DISTANCES if self.is_duo else self.SOLO_DISTANCES
+        bg_color = "#FC9E2F" if self.is_duo else "#82C8FF"
+
+        for i, distance in enumerate(distances):
+            self.distance_buttons[i].setText("")
+            self.distance_buttons[i].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {bg_color};
+                    border-radius: 60px;
+                    border: none;
+                }}
+                QPushButton:hover {{
+                    border: 4px solid cyan;
+                }}
+            """)
+            try:
+                self.distance_buttons[i].clicked.disconnect()
+            except TypeError:
+                pass
+            self.distance_buttons[i].clicked.connect(lambda _, d=distance: self.start_game(d))
+
     def showEvent(self, event):
-        """Вызывается при показе виджета"""
         super().showEvent(event)
-        # Скрываем все элементы перед анимацией
+
         for widget in self.widgets_to_animate:
             widget.hide()
-        # Запускаем анимацию сборки через RotatingPanel
+
+        self.update_distance_buttons()
+        self.position_buttons()
+
+        background_path = "assets/textures/cus2.png" if self.is_duo else "assets/textures/cus.png"
+
         RotatingPanel.assemble_transition(
             self,
             on_finished=self.on_animation_finished,
-            background_path="assets/textures/cus.png"
+            background_path=background_path
         )
+
+    def position_buttons(self):
+        if self.is_duo:
+            positions = [(416, 568), (800, 568), (1184, 568), (1568, 568)]
+        else:
+            positions = [(611, 390), (996, 390), (1381, 390), (1766, 390)]
+
+        for i, pos in enumerate(positions):
+            self.distance_buttons[i].move(*pos)
+            self.distance_buttons[i].show()
+            self.distance_buttons[i].raise_()
 
     def on_animation_finished(self):
         self.temp_background = QLabel(self)
-        dev_g_pixmap = QPixmap("assets/textures/cus.png")
+        background_path = "assets/textures/cus2.png" if self.is_duo else "assets/textures/cus.png"
+        dev_g_pixmap = QPixmap(background_path)
         scaled = dev_g_pixmap.scaled(self.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         self.temp_background.setPixmap(scaled)
         self.temp_background.resize(self.size())
@@ -98,8 +138,7 @@ class DistanceSelection(QWidget):
 
     def start_game(self, distance):
         if self.parent:
-            if self.is_duo == False:
-                self.parent.game_screen.reset_game()
+            if not self.is_duo:
                 self.parent.game_screen.set_target_distance(distance)
                 self.parent.setCurrentWidget(self.parent.game_screen)
             else:

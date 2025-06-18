@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect
 from PyQt5.QtGui import QPixmap, QFont, QPainter
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QPointF
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 
+from engine.rotating_panel import RotatingPanel
 from engine.screens.settings_menu import SettingsMenu
 
 
@@ -195,7 +196,21 @@ class PauseMenu(QWidget):
         """Выйти в главное меню."""
         print("Выход в главное меню...")
         if self.parent:
-            self.parent.play_cancel_sound()  # Звуковой эффект cancel_click
-        if self.parent and hasattr(self.parent.game_screen, "toggle_pause"):
-            self.parent.game_screen.toggle_pause()
-            self.parent.setCurrentWidget(self.parent.main_menu)
+            self.parent.play_cancel_sound()
+            QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
+            QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
+            QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
+
+    def keyPressEvent(self, event):
+        """Обработка нажатия клавиш."""
+        if event.key() == Qt.Key_Escape:
+            if self.is_settings_open:
+                # Если настройки открыты, закрываем их
+                self.close_settings()
+                self.parent.play_cancel_sound()
+            else:
+                # Если настройки закрыты, продолжаем игру
+                self.continue_game()
+                self.parent.play_select_sound()
+        else:
+            super().keyPressEvent(event)

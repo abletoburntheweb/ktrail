@@ -10,6 +10,8 @@ from engine.obstacle import Obstacle, PowerLine, ExposedWire, TransmissionTower,
 from engine.powerups import SpeedBoost
 from engine.tile_manager import TileManager
 
+from engine.rotating_panel import RotatingPanel
+
 
 class GameScreen(QWidget):
     def __init__(self, parent=None):
@@ -72,19 +74,7 @@ class GameScreen(QWidget):
             screen_width=self.width(),
             screen_height=self.height()
         )
-        # Добавляем типы тайлов
-        self.tile_manager.add_tile_type(
-            "asphalt",
-            [
-                "assets/textures/asf.png",
-                "assets/textures/dev_w.png",
-                "assets/textures/dev_g.png"
-            ],
-            weights=[5, 3, 2]  # Частота появления текстур
-        )
-        self.tile_manager.add_tile_type("grass", ["assets/textures/grass.png"])
-        self.tile_manager.add_tile_type("grass_side", ["assets/textures/grass_side.png"])  # Текстура границы
-        self.tile_manager.add_tile_type("decoration", ["assets/textures/dev_o.png"])  # Спрайт декорации
+        self.tile_manager.load_default_tile_types()
         # Создаём начальные тайлы
         self.tile_manager.init_tiles()
         # Игрок
@@ -152,11 +142,10 @@ class GameScreen(QWidget):
         self.trail_start_color = QColor("#4aa0fc")  # Голубой
         self.trail_end_color = QColor("#FFFFFF")  # Белый
 
-        # Увеличиваем размер side_panel
-        side_panel_width = 400  # Желаемая ширина
-        side_panel_height = 200  # Желаемая высота
+        # Размеры side_panel (автоматически берутся из изображения)
+        side_panel_width = self.side_panel_pixmap.width()
+        side_panel_height = self.side_panel_pixmap.height()
         self.side_panel_label.setFixedSize(side_panel_width, side_panel_height)
-        # Размещаем side_panel в правом верхнем углу
         self.side_panel_label.setGeometry(
             self.width() - side_panel_width,  # X
             0,  # Y
@@ -172,19 +161,50 @@ class GameScreen(QWidget):
             side_panel_width,  # Ширина
             side_panel_height  # Высота
         )
-        self.side_panel_container.setStyleSheet("background-color: rgba(0, 0, 0, 150);")  # Полупрозрачный фон
+        # Делаем контейнер прозрачным
+        self.side_panel_container.setStyleSheet("background-color: transparent;")
+        # Перемещаем контейнер на передний план
+        self.side_panel_container.raise_()
 
         # Создание QLabel для "Расстояние"
         self.distance_label = QLabel("200", self.side_panel_container)
         self.distance_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
-        self.distance_label.setStyleSheet("color: white; font-size: 18px;")
-        self.distance_label.setGeometry(75, 20, side_panel_width - 1, 40)  # X, Y, Width, Height
+        self.distance_label.setStyleSheet("color: red; font-size: 18px;")
+        self.distance_label.setGeometry(380, 35, 100, 40)  # Явные размеры
 
         # Создание QLabel для "Время"
         self.time_label = QLabel("30", self.side_panel_container)
         self.time_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
-        self.time_label.setStyleSheet("color: white; font-size: 18px;")
-        self.time_label.setGeometry(0, 140, side_panel_width - 55, 40)  # X, Y, Width, Height
+        self.time_label.setStyleSheet("color: red; font-size: 18px;")
+        self.time_label.setGeometry(220, 230, 100, 40)  # Явные размеры
+
+        # Создание вертикального прогресс-бара для КЗ
+        self.short_circuit_bar = QProgressBar(self.side_panel_container)
+        self.short_circuit_bar.setOrientation(Qt.Vertical)  # Вертикальная ориентация
+        self.short_circuit_bar.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                background-color: transparent;
+                width: 20px; /* Ширина прогресс-бара */
+            }
+            QProgressBar::chunk {
+                background-color: red; /* Цвет заполненной части */
+                height: 10px; /* Высота каждого прямоугольника */
+                margin-bottom: 5px; /* Промежуток между прямоугольниками */
+                border-radius: 2px; /* Закругленные углы */
+            }
+        """)
+        self.short_circuit_bar.setMaximum(100)  # Максимальное значение
+        self.short_circuit_bar.setValue(0)  # Начальное значение
+        self.short_circuit_bar.setTextVisible(False)  # Отключаем текст
+        self.short_circuit_bar.setGeometry(97, 10, 60,
+                                           70)  # X, Y, Width, Height (те же значения, что и у красного прямоугольника)
+        self.short_circuit_bar.show()
+        # Инициализация списка для хранения speed_image_labels
+        self.speed_image_labels = []
+
+        # Отображение всего
+        self.show()
 
     def init_ui(self):
         self.setWindowTitle("Игровой экран")
@@ -238,7 +258,7 @@ class GameScreen(QWidget):
         :param distance_traveled: Пройденное расстояние (в метрах).
         :param target_distance: Целевая дистанция (в метрах).
         """
-        text = f"{int(distance_traveled)}"
+        text = f"{int(distance_traveled)} м / {self.target_distance} м" # text = f"{int(distance_traveled)}"
         self.distance_label.setText(text)
 
     def update_time_text(self, elapsed_time):
@@ -249,6 +269,61 @@ class GameScreen(QWidget):
         time_text = f"{elapsed_time:.1f}"
         self.time_label.setText(time_text)
 
+    def update_short_circuit_bar(self):
+        """
+        Обновляет значение вертикального прогресс-бара для КЗ.
+        """
+        # Получаем текущий уровень КЗ игрока
+        short_circuit_level = self.player.get_short_circuit_level()
+        # Устанавливаем значение прогресс-бара
+        self.short_circuit_bar.setValue(int(short_circuit_level))
+
+    def add_speed_image(self):
+        """Добавляет новое изображение speed.png."""
+        # Ограничиваем количество изображений до 4
+        if len(self.speed_image_labels) >= 4:
+            return
+
+        # Создаем новый QLabel для speed.png
+        speed_image_label = QLabel(self.side_panel_container)
+        speed_image_pixmap = QPixmap("assets/textures/speed.png")  # Укажите правильный путь к файлу
+        if speed_image_pixmap.isNull():
+            print("Ошибка: Изображение speed.png не загружено!")
+            return
+
+        speed_image_label.setPixmap(speed_image_pixmap)
+        speed_image_label.setScaledContents(False)  # Не растягиваем изображение
+
+        # Получаем оригинальные размеры изображения
+        image_width = speed_image_pixmap.width()
+        image_height = speed_image_pixmap.height()
+
+        # Располагаем изображения вертикально один над другим без шага
+        if len(self.speed_image_labels) == 0:
+            # Для первого изображения устанавливаем начальную позицию
+            y_position = 80
+        else:
+            # Для последующих изображений устанавливаем позицию выше предыдущего
+            last_label = self.speed_image_labels[-1]
+            y_position = last_label.y() - image_height
+
+        speed_image_label.setGeometry(195, y_position, image_width, image_height)
+
+        # Добавляем QLabel в список
+        self.speed_image_labels.append(speed_image_label)
+
+        # Важно: Показываем элемент явно
+        speed_image_label.show()
+
+    def remove_speed_image(self):
+        """Удаляет последнее изображение speed.png."""
+        if not self.speed_image_labels:
+            return
+
+        # Удаляем последний элемент из списка
+        last_label = self.speed_image_labels.pop()
+        last_label.deleteLater()  # Удаляем виджет
+
     def paintEvent(self, event):
         try:
             self.painter.begin(self)
@@ -256,8 +331,7 @@ class GameScreen(QWidget):
             self.tile_manager.draw_tiles(self.painter)
             # 2. Отрисовка машин
             for car in self.cars:
-                if car and car.texture:
-                    self.painter.drawPixmap(car.x, car.y, car.texture)
+                car.draw(self.painter)
             # 3. Накладываем градиент дня/ночи
             gradient = self.day_night.get_background_gradient(self.height())
             if gradient:
@@ -371,17 +445,13 @@ class GameScreen(QWidget):
         # Запускаем таймеры
         self.timer.start(16)
         self.obstacle_spawn_timer.start(2000)
+        self.car_spawn_timer.start(5000)
         self.time_timer.start(self.day_night.tick_interval_ms)
 
     def update_game(self):
         """Обновление игрового процесса."""
         if self.is_game_over:
             return
-
-        def update_game(self):
-            """Обновление игрового процесса."""
-            if self.is_game_over:
-                return
 
         # Подсчет FPS
         self.frame_count += 1
@@ -414,6 +484,22 @@ class GameScreen(QWidget):
         # Обновляем текст для затраченного времени
         self.update_time_text(self.elapsed_time)
 
+        # Обновляем прогресс-бар КЗ
+        self.update_short_circuit_bar()
+
+        # Обновление изображений speed.png
+        current_speed_level = self.player.get_current_speed_level()  # Получаем уровень скорости
+        current_image_count = len(self.speed_image_labels)
+
+        # Если текущая скорость требует больше изображений
+        while current_image_count < current_speed_level - 1:  # Уровень скорости минус 1
+            self.add_speed_image()
+            current_image_count += 1
+
+        # Если текущая скорость требует меньше изображений
+        while current_image_count > current_speed_level - 1:  # Уровень скорости минус 1
+            self.remove_speed_image()
+            current_image_count -= 1
         # Плавное обновление координаты X трейла
         if self.current_trail_x != self.target_trail_x:
             delta = self.target_trail_x - self.current_trail_x
@@ -557,7 +643,9 @@ class GameScreen(QWidget):
             if self.parent:
                 self.parent.stop_music()  # Безопасная остановка
                 self.parent.play_music(self.parent.menu_music_path)  # Безопасный запуск
-                self.parent.setCurrentWidget(self.parent.main_menu)
+                QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
+                QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
+                QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
 
     def show_game_over(self):
         """Показ экрана 'Конец игры'."""
@@ -573,36 +661,16 @@ class GameScreen(QWidget):
         msg.setIcon(QMessageBox.Critical)
         choice = msg.exec_()
         if choice == QMessageBox.Retry:
-            self.reset_game()
+            self.is_game_over = False
+            self.set_target_distance(self.target_distance)
+            if self.parent:
+                self.parent.play_music(self.parent.game_music_path)
             self.update()
         else:
             if self.parent:
-                self.parent.setCurrentWidget(self.parent.main_menu)
-
-    def reset_game(self):
-        """Сброс состояния игры и полный рестарт."""
-        self.player = Player()  # Создание нового игрока сбросит шкалу КЗ
-        self.obstacles.clear()
-        self.cars.clear()
-        self.trail.clear()
-        self.exposed_wires.clear()  # Очищаем список оголенных проводов
-        self.transmission_towers.clear()  # Очищаем список опор ЛЭП
-        self.is_game_over = False
-        self.distance_traveled = 0
-        self.start_time = None  # Сбрасываем время начала игры
-        self.elapsed_time = 0  # Сбрасываем затраченное время
-        # Пересоздаём тайлы
-        self.tile_manager.init_tiles()
-        self.day_night.current_tick = 8200
-        # Запускаем таймеры
-        self.timer.start(16)
-        self.obstacle_spawn_timer.start(2000)
-        self.time_timer.start(self.day_night.tick_interval_ms)
-        # Сбрасываем счетчик удаленных препятствий
-        self.total_removed_obstacles = 0
-        # Перезапуск музыки через родительский виджет
-        if self.parent:
-            self.parent.play_music(self.parent.game_music_path)
+                QTimer.singleShot(800, lambda: RotatingPanel.start_transition(self))
+                QTimer.singleShot(2700, lambda: self.parent.setCurrentWidget(self.parent.main_menu))
+                QTimer.singleShot(2700, lambda: self.parent.main_menu.restore_positions())
 
     def toggle_pause(self):
         if hasattr(self, "is_paused"):
@@ -614,9 +682,22 @@ class GameScreen(QWidget):
             self.last_frame_pixmap = self.grab()
             print("Снимок экрана успешно захвачен:", not self.last_frame_pixmap.isNull())
             self.timer.stop()
+            self.obstacle_spawn_timer.stop()
+            self.tower_spawn_timer.stop()
+            self.lamp_spawn_timer.stop()
+            self.car_spawn_timer.stop()
+            self.exposed_wire_spawn_timer.stop()
+            self.powerup_spawn_timer.stop()
             if self.parent:
                 self.parent.main_menu.current_mode = "single"  # Сохраняем текущий режим
                 self.parent.pause_menu.set_last_frame(self.last_frame_pixmap)  # Передаем снимок в меню паузы
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         else:
             self.timer.start(16)
+            self.obstacle_spawn_timer.start(2000)
+            self.tower_spawn_timer.start(8000)
+            self.lamp_spawn_timer.start(6000)
+            self.car_spawn_timer.start(5000)
+            self.exposed_wire_spawn_timer.start(3000)
+            self.powerup_spawn_timer.start(15000)
+            self.time_timer.start(self.day_night.tick_interval_ms)

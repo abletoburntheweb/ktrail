@@ -319,13 +319,6 @@ class MainMenu(QWidget):
         self.settings_menu.show()
         self.is_settings_open = True  # Устанавливаем флаг, что настройки открыты
 
-    def close_current_modal(self):
-        """Закрытие текущего модального окна."""
-        if self.current_modal_widget:
-            self.current_modal_widget.hide()
-            self.overlay.hide()
-            self.current_modal_widget = None
-
     def close_leaderboard(self):
         """Закрытие таблицы рекордов."""
         if self.leaderboard_widget:
@@ -347,6 +340,15 @@ class MainMenu(QWidget):
         print("Выход из игры...")
         if self.parent:
             self.parent.exit_game()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            if self.is_leaderboard_open:
+                self.close_leaderboard()
+                self.parent.play_cancel_sound()
+            elif self.is_settings_open:
+                self.close_settings()
+                self.parent.play_cancel_sound()
 
     def disable_buttons(self):
         for btn in [self.start_button, self.start_duo_button, self.leaderboard_button, self.settings_button, self.exit_button]:
