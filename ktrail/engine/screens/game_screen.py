@@ -23,20 +23,20 @@ class GameScreen(QWidget):
         self.fps = 0
         self.last_fps_update_time = perf_counter()
         self.show_fps = self.parent.settings.get("show_fps", True)
-        # Инициализация системы дня и ночи
+
         self.day_night = DayNightSystem()
         self.target_distance = 0
         self.distance_traveled = 0
         self.speed_to_meters_coefficient = 0.01
         self.speed = 10
         self.side_panel_label = QLabel(self)
-        self.side_panel_pixmap = QPixmap("assets/textures/side_panel.png")  # Укажите правильный путь к файлу
+        self.side_panel_pixmap = QPixmap("assets/textures/side_panel.png")
         if self.side_panel_pixmap.isNull():
             print("Ошибка: Изображение side_panel.png не загружено!")
         else:
             self.side_panel_label.setPixmap(self.side_panel_pixmap)
             self.side_panel_label.setAlignment(Qt.AlignTop | Qt.AlignRight)
-            self.side_panel_label.setScaledContents(True)  # Растягиваем изображение
+            self.side_panel_label.setScaledContents(True)
 
         self.init_ui()
 
@@ -51,15 +51,15 @@ class GameScreen(QWidget):
             screen_height=self.height()
         )
         self.tile_manager.load_default_tile_types()
-        # Создаём начальные тайлы
+
         self.tile_manager.init_tiles()
         self.player = Player()
-        # Опоры ЛЭП
+
         self.transmission_towers = []
-        # Таймер для спавна опор ЛЭП
+
         self.tower_spawn_timer = QTimer(self)
         self.tower_spawn_timer.timeout.connect(self.spawn_transmission_tower)
-        # Препятствия
+
         self.obstacles = []
         self.obstacle_spawn_timer = QTimer(self)
         self.obstacle_spawn_timer.timeout.connect(self.spawn_obstacle)
@@ -67,76 +67,79 @@ class GameScreen(QWidget):
         self.car_spawn_timer = QTimer(self)
         self.car_spawn_timer.timeout.connect(self.spawn_car)
         self.exposed_wires = []
-        # Таймер для спавна оголенных проводов
+
         self.exposed_wire_spawn_timer = QTimer(self)
         self.exposed_wire_spawn_timer.timeout.connect(self.spawn_exposed_wire)
         self.active_powerups = []
-        # Таймер для спавна паверапов
+
         self.powerup_spawn_timer = QTimer(self)
         self.powerup_spawn_timer.timeout.connect(self.spawn_powerup)
-        # Линии
+
         self.power_line = PowerLine(line_width=12, color="#89878c")
-        # Трейл игрока
-        self.trail = []  # Трейл игрока
+
+        self.trail = []
         self.max_trail_length = 20
         self.trail_width = 10
-        self.trail_color = QColor("#4aa0fc")  # Цвет трейла (HEX)
-        self.target_trail_x = self.player.x + 15  # Целевая координата X для трейла
-        self.current_trail_x = self.player.x + 15  # Текущая координата X для трейла
-        self.trail_transition_speed = 5  # Скорость перехода трейла
-        # Таймер игры
+        self.trail_color = QColor("#4aa0fc")
+        self.target_trail_x = self.player.x + 15
+        self.current_trail_x = self.player.x + 15
+        self.trail_transition_speed = 5
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
-        # Таймер обновления времени
+
         self.time_timer = QTimer(self)
         self.time_timer.timeout.connect(self.update_day_night)
-        # Состояние игры
+
         self.is_game_over = False
         self.total_removed_obstacles = 0
-        # Создание объектов QPainter и QBrush один раз
         self.painter = QPainter()
         self.player_brush = QBrush(Qt.red)
         self.obstacle_brush = QBrush(Qt.black)
         self.powerup_brush = QBrush(Qt.green)
         self.exposed_wire_brush = QBrush(QColor("#f80000"))
-        self.trail_start_color = QColor("#4aa0fc")  # Голубой
-        self.trail_end_color = QColor("#FFFFFF")  # Белый
+        self.trail_start_color = QColor("#4aa0fc")
+        self.trail_end_color = QColor("#FFFFFF")
 
-        # Размеры side_panel (автоматически берутся из изображения)
         side_panel_width = self.side_panel_pixmap.width()
         side_panel_height = self.side_panel_pixmap.height()
         self.side_panel_label.setFixedSize(side_panel_width, side_panel_height)
         self.side_panel_label.setGeometry(
-            self.width() - side_panel_width,  # X
-            0,  # Y
-            side_panel_width,  # Ширина
-            side_panel_height  # Высота
+            self.width() - side_panel_width,
+            0,
+            side_panel_width,
+            side_panel_height
         )
 
-        # Создание контейнера
         self.side_panel_container = QWidget(self)
         self.side_panel_container.setGeometry(
-            self.width() - side_panel_width,  # X
-            0,  # Y
-            side_panel_width,  # Ширина
-            side_panel_height  # Высота
+            self.width() - side_panel_width,
+            0,
+            side_panel_width,
+            side_panel_height
         )
-        # Делаем контейнер прозрачным
         self.side_panel_container.setStyleSheet("background-color: transparent;")
-        # Перемещаем контейнер на передний план
         self.side_panel_container.raise_()
 
-        # Создание QLabel для "Расстояние"
         self.distance_label = QLabel("200", self.side_panel_container)
-        self.distance_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
-        self.distance_label.setStyleSheet("color: red; font-size: 18px;")
-        self.distance_label.setGeometry(380, 35, 100, 40)  # Явные размеры
+        self.distance_label.setAlignment(Qt.AlignCenter)
+        self.distance_label.setStyleSheet("""
+            color: #B29400; 
+            font-family: Consolas;  
+            font-size: 72px; 
+            font-weight: bold;  
+        """)
+        self.distance_label.setGeometry(330, 10, 200, 100)
 
-        # Создание QLabel для "Время"
         self.time_label = QLabel("30", self.side_panel_container)
-        self.time_label.setAlignment(Qt.AlignCenter)  # Центрирование текста
-        self.time_label.setStyleSheet("color: red; font-size: 18px;")
-        self.time_label.setGeometry(220, 230, 100, 40)  # Явные размеры
+        self.time_label.setAlignment(Qt.AlignCenter)
+        self.time_label.setStyleSheet("""
+            color: #B29400; 
+            font-family: Consolas;  
+            font-size: 72px; 
+            font-weight: bold; 
+        """)
+        self.time_label.setGeometry(175, 205, 200, 100)
 
         # Инициализация параметров для отображения стадий КЗ
         self.short_circuit_rect = {
