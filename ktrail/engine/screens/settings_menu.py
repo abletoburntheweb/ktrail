@@ -9,18 +9,15 @@ class SettingsMenu(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # Основной макет
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(20)  # Отступы между элементами
+        layout.setSpacing(20)
 
-        # Заголовок
         title_label = QLabel("Настройки")
         title_label.setFont(QFont("Montserrat", 36, QFont.Bold))
         title_label.setStyleSheet("color: white; background-color: transparent;")
         layout.addWidget(title_label)
 
-        # Полноэкранный режим
         self.fullscreen_toggle = QCheckBox("Полноэкранный режим")
         self.fullscreen_toggle.setFont(QFont("Montserrat", 18))
         self.fullscreen_toggle.setStyleSheet("""
@@ -52,7 +49,6 @@ class SettingsMenu(QWidget):
         self.fullscreen_toggle.stateChanged.connect(self.toggle_fullscreen)
         layout.addWidget(self.fullscreen_toggle)
 
-        # Регулировка громкости музыки
         volume_label = QLabel("Громкость музыки")
         volume_label.setFont(QFont("Montserrat", 18))
         volume_label.setStyleSheet("color: white; background-color: transparent;")
@@ -82,7 +78,6 @@ class SettingsMenu(QWidget):
         self.volume_slider.valueChanged.connect(self.update_music_volume)
         layout.addWidget(self.volume_slider)
 
-        # Регулировка громкости звуковых эффектов
         effects_label = QLabel("Громкость звуков")
         effects_label.setFont(QFont("Montserrat", 18))
         effects_label.setStyleSheet("color: white; background-color: transparent;")
@@ -112,7 +107,6 @@ class SettingsMenu(QWidget):
         self.effects_slider.valueChanged.connect(self.update_effects_volume)
         layout.addWidget(self.effects_slider)
 
-        # Переключатель отображения FPS
         self.fps_toggle = QCheckBox("Отображать FPS")
         self.fps_toggle.setFont(QFont("Montserrat", 18))
         self.fps_toggle.setStyleSheet("""
@@ -144,72 +138,64 @@ class SettingsMenu(QWidget):
         self.fps_toggle.stateChanged.connect(self.toggle_fps)
         layout.addWidget(self.fps_toggle)
 
-        # Разделитель
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setStyleSheet("color: rgba(255, 255, 255, 50);")
         layout.addWidget(separator)
 
-        # Кнопка "Закрыть"
-        close_button = QPushButton("Закрыть")
-        close_button.setFont(QFont("Montserrat", 18))
-        close_button.setStyleSheet("""
+        self.close_button = QPushButton("Закрыть")
+        self.close_button.setFont(QFont("Montserrat", 18))
+        self.close_button.setStyleSheet("""
             color: white;
             background-color: rgba(255, 255, 255, 20);
             border: 2px solid white;
             border-radius: 10px;
             padding: 10px;
         """)
-        close_button.enterEvent = lambda e: close_button.setStyleSheet("""
+        self.close_button.enterEvent = lambda e: self.close_button.setStyleSheet("""
             color: white;
             background-color: rgba(255, 255, 255, 40);
             border: 2px solid white;
             border-radius: 10px;
             padding: 10px;
         """)
-        close_button.leaveEvent = lambda e: close_button.setStyleSheet("""
+        self.close_button.leaveEvent = lambda e: self.close_button.setStyleSheet("""
             color: white;
             background-color: rgba(255, 255, 255, 20);
             border: 2px solid white;
             border-radius: 10px;
             padding: 10px;
         """)
-        close_button.clicked.connect(self.close_settings)
-        layout.addWidget(close_button)
+        self.close_button.clicked.connect(self.close_settings)
+        layout.addWidget(self.close_button)
 
         self.setLayout(layout)
 
     def toggle_fullscreen(self, state):
-        """Переключение полноэкранного режима."""
         if self.parent:
             self.parent.toggle_fullscreen()
 
     def update_music_volume(self, value):
-        """Обновление громкости музыки."""
         if self.parent:
             self.parent.media_player.setVolume(value)
             self.parent.settings["music_volume"] = value
             self.parent.save_settings()
 
     def update_effects_volume(self, value):
-        """Обновление громкости звуковых эффектов."""
         if self.parent:
             self.parent.sound_player.setVolume(value)
             self.parent.settings["effects_volume"] = value
             self.parent.save_settings()
 
     def toggle_fps(self, state):
-        """Переключение отображения FPS."""
         if self.parent:
-            self.parent.settings["show_fps"] = bool(state)  # Обновляем настройку
-            self.parent.save_settings()  # Сохраняем настройку
+            self.parent.settings["show_fps"] = bool(state)
+            self.parent.save_settings()
 
-            # Уведомляем GameScreen о новом состоянии FPS
             if hasattr(self.parent.game_screen, "update_fps_visibility"):
                 self.parent.game_screen.update_fps_visibility(bool(state))
 
     def close_settings(self):
-        """Закрытие экрана настроек."""
         if self.parent:
             self.parent.main_menu.close_settings()
             self.parent.play_cancel_sound()
