@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect, QStackedWidget
-from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QParallelAnimationGroup, QPointF
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect, QStackedWidget, QLineEdit
+from PyQt5.QtGui import QPixmap, QFont, QRegExpValidator
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QParallelAnimationGroup, QPointF, QRegExp
 from engine.rotating_panel import RotatingPanel
 from engine.screens.leaderboard_screen import LeaderboardScreen
 from engine.screens.settings_menu import SettingsMenu
@@ -26,6 +26,50 @@ class MainMenu(QWidget):
         self.is_intro_finished = False  # Флаг завершения интро
         self.init_ui()
         self.init_intro()
+
+        # Добавляем QLabel для отображения имени пользователя
+        self.username_label = QLabel("ABC", self)
+        self.username_label.setFont(QFont("Montserrat", 24))
+        self.username_label.setStyleSheet("color: white;")
+        self.username_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
+        self.username_label.setGeometry(self.width() - 200, self.height() - 50, 180, 40)
+        self.username_label.setCursor(Qt.PointingHandCursor)  # Меняем курсор при наведении
+        self.username_label.mousePressEvent = self.edit_username  # Обработчик клика
+
+        # Добавляем QLineEdit для редактирования имени
+        self.username_edit = QLineEdit(self)
+        self.username_edit.setFixedSize(180, 40)
+        self.username_edit.setFont(QFont("Montserrat", 24))
+        self.username_edit.setAlignment(Qt.AlignRight | Qt.AlignBottom)
+        self.username_edit.setMaxLength(3)  # Ограничение в 3 символа
+        regex = QRegExp("[A-Z]{1,3}")  # Только заглавные латинские буквы
+        validator = QRegExpValidator(regex, self)
+        self.username_edit.setValidator(validator)
+        self.username_edit.returnPressed.connect(self.save_username)  # Сохранение при нажатии Enter
+
+        # Устанавливаем стиль для QLineEdit
+        self.username_edit.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.8);
+                border-radius: 8px;
+                color: white;
+                font-size: 24px;
+                padding: 5px;
+            }
+            QLineEdit:focus {
+                border: 2px solid rgba(0, 255, 255, 0.8);
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+        """)
+
+        # Добавляем плейсхолдер
+        self.username_edit.setPlaceholderText("ABC")  # Плейсхолдер с примером
+
+        # Подключаем обработчик изменения текста
+        self.username_edit.textChanged.connect(self.validate_username)
+
+        self.username_edit.hide()  # Скрываем поле редактирования изначально
 
     def paintEvent(self, event):
         if hasattr(self, "show_background") and self.show_background:
@@ -143,6 +187,66 @@ class MainMenu(QWidget):
         widget.animation = animation
         animation.start()
 
+    def edit_username(self, event):
+        """Переключение в режим редактирования имени."""
+        if self.parent:
+            self.parent.play_select_sound()  # Воспроизведение звука select_click
+        self.username_label.hide()
+        self.username_edit.setText(self.username_label.text())
+        self.username_edit.move(self.width() - 200, self.height() - 50)
+        self.username_edit.show()
+        self.username_edit.setFocus()
+
+    def validate_username(self):
+        """
+        Проверяет длину имени и меняет стиль QLineEdit.
+        Если длина меньше 3, рамка становится красной.
+        """
+        text = self.username_edit.text()
+        if len(text) < 3:
+            self.username_edit.setStyleSheet("""
+                QLineEdit {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    border: 2px solid rgba(255, 0, 0, 0.8);  /* Красная рамка */
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 24px;
+                    padding: 5px;
+                }
+                QLineEdit:focus {
+                    border: 2px solid rgba(255, 0, 0, 0.8);  /* Красная рамка при фокусе */
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+            """)
+        else:
+            self.username_edit.setStyleSheet("""
+                QLineEdit {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    border: 2px solid rgba(255, 255, 255, 0.8);  /* Белая рамка */
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 24px;
+                    padding: 5px;
+                }
+                QLineEdit:focus {
+                    border: 2px solid rgba(0, 255, 255, 0.8);  /* Голубая рамка при фокусе */
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+            """)
+
+    def save_username(self):
+        """
+        Сохраняет новое имя пользователя.
+        Если длина имени не равна 3, выводит сообщение об ошибке.
+        """
+        new_name = self.username_edit.text().upper()  # Преобразуем в верхний регистр
+        if len(new_name) == 3:  # Проверяем длину имени (ровно 3 символа)
+            self.username_label.setText(new_name)
+            self.username_edit.hide()
+            self.username_label.show()
+        else:
+            print("Ошибка: имя должно содержать ровно 3 символа.")
+            self.validate_username()  # Подсвечиваем красную рамку
     def create_button(self, text, callback, x, y, w, h):
         button = QPushButton(text, self)
         button.setFont(QFont("Montserrat", 20))

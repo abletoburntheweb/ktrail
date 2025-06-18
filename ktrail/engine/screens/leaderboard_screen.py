@@ -1,5 +1,4 @@
 import json
-
 from PyQt5.QtCore import Qt, QPointF, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QPushButton, QLabel, \
     QGraphicsOpacityEffect, QStackedWidget
@@ -71,8 +70,8 @@ class LeaderboardScreen(QWidget):
 
         # Таблица рекордов
         self.leaderboard_table = QTableWidget()
-        self.leaderboard_table.setColumnCount(2)  # Две колонки: "Место" и "Время"
-        self.leaderboard_table.setHorizontalHeaderLabels(["Место", "Время"])
+        self.leaderboard_table.setColumnCount(3)  # Три колонки: "Место", "Имя", "Время"
+        self.leaderboard_table.setHorizontalHeaderLabels(["Место", "Имя", "Время"])
         self.leaderboard_table.setRowCount(0)
         self.leaderboard_table.setFont(QFont("Montserrat", 16))
         self.leaderboard_table.horizontalHeader().setStretchLastSection(True)
@@ -82,8 +81,9 @@ class LeaderboardScreen(QWidget):
         self.leaderboard_table.setSelectionMode(QTableWidget.NoSelection)
 
         # Настройка ширины столбцов
-        self.leaderboard_table.setColumnWidth(0, 150)  # Ширина первого столбца ("Место")
-        self.leaderboard_table.setColumnWidth(1, 250)  # Ширина второго столбца ("Время")
+        self.leaderboard_table.setColumnWidth(0, 100)  # Ширина первого столбца ("Место")
+        self.leaderboard_table.setColumnWidth(1, 200)  # Ширина второго столбца ("Имя")
+        self.leaderboard_table.setColumnWidth(2, 200)  # Ширина третьего столбца ("Время")
 
         # Настройка скроллбара
         self.leaderboard_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -144,7 +144,6 @@ class LeaderboardScreen(QWidget):
         self.stack.addWidget(self.placeholder)
         self.stack.addWidget(self.leaderboard_table)
         self.stack.setCurrentWidget(self.placeholder)  # Показываем заглушку по умолчанию
-
         layout.addWidget(self.stack)
 
         # Кнопка "Закрыть"
@@ -217,7 +216,6 @@ class LeaderboardScreen(QWidget):
         animation.setStartValue(1 if hide_after else 0)
         animation.setEndValue(0 if hide_after else 1)
         animation.start()
-
         if hide_after:
             animation.finished.connect(widget.hide)
 
@@ -241,29 +239,35 @@ class LeaderboardScreen(QWidget):
         self.leaderboard_table.setRowCount(0)
 
         # Заполняем таблицу данными
-        for i, time in enumerate(records):
+        for i, record in enumerate(records):
             self.leaderboard_table.insertRow(i)  # Добавляем строку
             place_item = QTableWidgetItem(str(i + 1))  # Место
-            time_item = QTableWidgetItem(f"{time:.2f} сек")  # Время
+            name_item = QTableWidgetItem(record["name"])  # Имя
+            time_item = QTableWidgetItem(f"{record['time']:.2f} сек")  # Время
 
             # Отключаем возможность редактирования
             place_item.setFlags(place_item.flags() & ~Qt.ItemIsEditable)
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
             time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
 
             # Подсветка первых трех мест
             if i == 0:  # Золото
                 place_item.setBackground(QColor(255, 215, 0, 100))  # Золотая подсветка
+                name_item.setBackground(QColor(255, 215, 0, 100))
                 time_item.setBackground(QColor(255, 215, 0, 100))
             elif i == 1:  # Серебро
                 place_item.setBackground(QColor(192, 192, 192, 100))  # Серебряная подсветка
+                name_item.setBackground(QColor(192, 192, 192, 100))
                 time_item.setBackground(QColor(192, 192, 192, 100))
             elif i == 2:  # Бронза
                 place_item.setBackground(QColor(205, 127, 50, 100))  # Бронзовая подсветка
+                name_item.setBackground(QColor(205, 127, 50, 100))
                 time_item.setBackground(QColor(205, 127, 50, 100))
 
             # Устанавливаем элементы в таблицу
             self.leaderboard_table.setItem(i, 0, place_item)  # Место
-            self.leaderboard_table.setItem(i, 1, time_item)  # Время
+            self.leaderboard_table.setItem(i, 1, name_item)  # Имя
+            self.leaderboard_table.setItem(i, 2, time_item)  # Время
 
         # Прокручиваем таблицу до начала
         self.leaderboard_table.scrollToTop()
@@ -275,11 +279,44 @@ class LeaderboardScreen(QWidget):
         """
         Загрузка рекордов для указанной дистанции.
         :param distance: Дистанция (в метрах).
-        :return: Список времен в порядке убывания (лучшее время сверху).
+        :return: Список записей в порядке убывания (лучшее время сверху).
         """
         try:
             with open("config/leaderboard.json", "r") as file:
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
-        return sorted(data.get(str(distance), []))  # Сортируем по времени
+
+        records = data.get(str(distance), [])
+        # Сортируем записи по времени (по возрастанию)
+        sorted_records = sorted(records, key=lambda x: x["time"])[:15]  # Ограничиваем до 15 лучших
+        return sorted_records
+
+    def save_record(self, distance, name, time):
+        """
+        Сохранение нового рекорда в файл.
+        :param distance: Дистанция (в метрах).
+        :param name: Имя игрока.
+        :param time: Время (в секундах).
+        """
+        try:
+            with open("config/leaderboard.json", "r") as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
+
+        # Получаем текущие записи для дистанции
+        records = data.get(str(distance), [])
+
+        # Добавляем новый рекорд
+        records.append({"name": name, "time": time})
+
+        # Сортируем записи по времени (по возрастанию)
+        sorted_records = sorted(records, key=lambda x: x["time"])[:15]  # Ограничиваем до 15 лучших
+
+        # Обновляем данные
+        data[str(distance)] = sorted_records
+
+        # Сохраняем обратно в файл
+        with open("config/leaderboard.json", "w") as file:
+            json.dump(data, file, indent=4)

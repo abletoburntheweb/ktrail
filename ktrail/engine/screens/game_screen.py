@@ -619,10 +619,26 @@ class GameScreen(QWidget):
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
+
+        # Получаем имя игрока из главного меню
+        if self.parent and hasattr(self.parent.main_menu, "username_label"):
+            player_name = self.parent.main_menu.username_label.text()
+        else:
+            player_name = "UNK"  # Если имя не найдено, используем "UNK" (Unknown)
+
+        # Получаем текущие записи для дистанции
         records = data.get(str(distance), [])
-        records.append(time)
-        records.sort()  # Сортировка по времени (лучшее время сверху)
-        data[str(distance)] = records
+
+        # Добавляем новый рекорд
+        records.append({"name": player_name, "time": time})
+
+        # Сортируем записи по времени (лучшее время сверху) и ограничиваем до 15 записей
+        sorted_records = sorted(records, key=lambda x: x["time"])[:15]
+
+        # Обновляем данные
+        data[str(distance)] = sorted_records
+
+        # Сохраняем обратно в файл
         with open("config/leaderboard.json", "w") as file:
             json.dump(data, file, indent=4)
 
