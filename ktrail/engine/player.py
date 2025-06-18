@@ -1,116 +1,120 @@
 from PyQt5.QtCore import Qt, QRect, QTimer
+from PyQt5.QtGui import QColor, QRadialGradient
 
 
 class Player:
     def __init__(self, y=780, size=40):
-        # Позиции по оси X
-        self.x_positions = [704, 954, 1204]
-        self.current_x_index = 1  # Начальная позиция (центр)
+        self.x_positions = [695, 948, 1190]
+        self.current_x_index = 1
         self.x = self.x_positions[self.current_x_index]
         self.y = y
         self.size = size
 
-        # Уровни скорости: 3 - стандартная скорость
-        self.speed_levels = [10, 15, 20, 25, 30]  # Скорости
-        self.current_speed_index = 2  # Начальная скорость (3-й уровень)
+        self.speed_levels = [10, 15, 20, 25, 30]
+        self.current_speed_index = 2
         self.speed = self.speed_levels[self.current_speed_index]
 
-        self.can_change_speed = True  # Флаг для блокировки изменения скорости
+        self.can_change_speed = True
 
-        # Шкала короткого замыкания (КЗ)
-        self.short_circuit_level = 0  # Текущий уровень КЗ (0 - минимальный, 100 - максимальный)
-        self.short_circuit_max = 100  # Максимальное значение КЗ
-        self.short_circuit_timer = QTimer()  # Таймер для обновления шкалы КЗ
+        self.short_circuit_level = 0
+        self.short_circuit_max = 100
+        self.short_circuit_timer = QTimer()
         self.short_circuit_timer.timeout.connect(self.update_short_circuit)
-        self.short_circuit_timer.start(100)  # Обновление каждые 100 мс
+        self.short_circuit_timer.start(100)
 
-    def update_short_circuit(self):
+        # Новый функционал: фонарик (всегда включен)
+        self.light_radius = 80  # Радиус светового эффекта
+        self.light_color = QColor("#ff6b6b")  # Красный цвет света
+        self.is_light_on = True  # Свет всегда включен
+
+    def draw_player_light(self, painter):
         """
-        Обновление шкалы КЗ в зависимости от текущей скорости.
+        Отрисовка светового эффекта вокруг игрока.
+        :param painter: QPainter для отрисовки.
         """
-        if self.short_circuit_level <= 0 and self.current_speed_index < 2:
-            # Если уровень КЗ уже ноль и скорость ниже стандартной,
-            # то просто выходим из метода без изменений
-            return
+        if self.is_light_on:
+            # Параметры света
+            light_radius = 80  # Радиус светового эффекта
+            light_color = QColor("#ff6b6b")  # Красный цвет света
 
-        if self.current_speed_index > 2:  # Если скорость выше стандартной
-            increase_rate = 0.5 if self.current_speed_index == 3 else 1.0
-            self.short_circuit_level = min(self.short_circuit_max, self.short_circuit_level + increase_rate)
-        elif self.current_speed_index < 2:  # Если скорость ниже стандартной
-            decrease_rate = 0.5 if self.current_speed_index == 1 else 1.0
-            self.short_circuit_level = max(0, self.short_circuit_level - decrease_rate)
+            # Центр света (центр игрока)
+            player_rect = self.get_rect()  # Получаем прямоугольник игрока
+            light_pos_x = player_rect.center().x()
+            light_pos_y = player_rect.center().y()
 
-        # Защита от выхода за границы
-        self.short_circuit_level = max(0, min(self.short_circuit_max, self.short_circuit_level))
+            # Создаем радиальный градиент
+            gradient = QRadialGradient(light_pos_x, light_pos_y, light_radius)
+            gradient.setColorAt(0, light_color)
+            gradient.setColorAt(1, QColor(255, 240, 200, 0))  # Плавное затухание к краям
+
+            # Отрисовываем свет
+            painter.setBrush(gradient)
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(
+                light_pos_x - light_radius,
+                light_pos_y - light_radius,
+                light_radius * 2,
+                light_radius * 2
+            )
+
+    def move(self, key):
+        if key == Qt.Key_A:
+            if self.current_x_index > 0:
+                self.current_x_index -= 1
+                self.x = self.x_positions[self.current_x_index]
+        elif key == Qt.Key_D:
+            if self.current_x_index < len(self.x_positions) - 1:
+                self.current_x_index += 1
+                self.x = self.x_positions[self.current_x_index]
 
     def change_speed(self, key):
-        """Изменение скорости игрока."""
         if not self.can_change_speed:
             return
 
         old_speed_index = self.current_speed_index
 
-        if key == Qt.Key_W:  # Увеличение скорости
+        if key == Qt.Key_W:
             if self.current_speed_index < len(self.speed_levels) - 1:
                 self.current_speed_index += 1
-        elif key == Qt.Key_S:  # Уменьшение скорости
+        elif key == Qt.Key_S:
             if self.current_speed_index > 0:
                 self.current_speed_index -= 1
 
-        # Обновляем текущую скорость
         self.speed = self.speed_levels[self.current_speed_index]
 
-        # Логика изменения шкалы КЗ
-        if self.current_speed_index > 2:  # Если скорость выше стандартной
-            pass  # Шкала КЗ увеличивается автоматически через таймер
-        elif self.current_speed_index < 2 and self.short_circuit_level > 0:  # Добавлена проверка на ноль
-            decrease_rate = 0.5 if self.current_speed_index == 1 else 1.0  # На 2-й скорости медленнее, на 1-й быстрее
+        if self.current_speed_index > 2:
+            pass
+        elif self.current_speed_index < 2 and self.short_circuit_level > 0:
+            decrease_rate = 0.5 if self.current_speed_index == 1 else 1.0
             self.short_circuit_level = max(0, self.short_circuit_level - decrease_rate)
-        # При переходе на стандартную скорость (3-й уровень) шкала КЗ не меняется
 
-        self.can_change_speed = False  # Блокируем изменение скорости
-        QTimer.singleShot(200, self.enable_speed_change)  # Разблокируем через 200 мс
+        self.can_change_speed = False
+        QTimer.singleShot(200, self.enable_speed_change)
 
     def enable_speed_change(self):
-        """
-        Разблокировка изменения скорости.
-        """
         self.can_change_speed = True
 
-    def move(self, key):
-        """
-        Обработка движения игрока.
-        :param key: Код клавиши (Qt.Key_A или Qt.Key_D).
-        """
-        if key == Qt.Key_A:  # Движение влево
-            if self.current_x_index > 0:
-                self.current_x_index -= 1
-                self.x = self.x_positions[self.current_x_index]
-        elif key == Qt.Key_D:  # Движение вправо
-            if self.current_x_index < len(self.x_positions) - 1:
-                self.current_x_index += 1
-                self.x = self.x_positions[self.current_x_index]
+    def update_short_circuit(self):
+        if self.short_circuit_level <= 0 and self.current_speed_index < 2:
+            return
+
+        if self.current_speed_index > 2:
+            increase_rate = 0.5 if self.current_speed_index == 3 else 1.0
+            self.short_circuit_level = min(self.short_circuit_max, self.short_circuit_level + increase_rate)
+        elif self.current_speed_index < 2:
+            decrease_rate = 0.5 if self.current_speed_index == 1 else 1.0
+            self.short_circuit_level = max(0, self.short_circuit_level - decrease_rate)
+
+        self.short_circuit_level = max(0, min(self.short_circuit_max, self.short_circuit_level))
 
     def get_current_speed(self):
-        """
-        Возвращает текущую скорость.
-        """
         return self.speed
 
     def get_current_speed_level(self):
-        """
-        Возвращает уровень скорости (индекс + 1).
-        """
-        return self.current_speed_index + 1  # Уровень скорости начинается с 1
+        return self.current_speed_index + 1
 
     def get_short_circuit_level(self):
-        """
-        Возвращает текущий уровень КЗ.
-        """
         return self.short_circuit_level
 
     def get_rect(self):
-        """
-        Возвращает прямоугольник (QRect) для коллизий.
-        """
         return QRect(int(self.x), int(self.y), self.size, self.size)

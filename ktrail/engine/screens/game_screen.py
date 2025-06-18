@@ -199,7 +199,7 @@ class GameScreen(QWidget):
         :param distance_traveled: Пройденное расстояние (в метрах).
         :param target_distance: Целевая дистанция (в метрах).
         """
-        text = f"{int(distance_traveled)} м / {self.target_distance} м" # text = f"{int(distance_traveled)}"
+        text = f"{int(distance_traveled)}"
         self.distance_label.setText(text)
 
     def update_time_text(self, elapsed_time):
@@ -348,19 +348,24 @@ class GameScreen(QWidget):
     def paintEvent(self, event):
         try:
             self.painter.begin(self)
+
             # 1. Рисуем тайлы
             self.tile_manager.draw_tiles(self.painter)
+
             # 2. Отрисовка машин
             for car in self.cars:
                 car.draw(self.painter)
+
             # 3. Накладываем градиент дня/ночи
             gradient = self.day_night.get_background_gradient(self.height())
             if gradient:
                 self.painter.setBrush(gradient)
                 self.painter.setPen(Qt.NoPen)
                 self.painter.drawRect(self.rect())
+
             # 4. Отрисовка линий
             self.power_line.draw(self.painter, self.height())
+
             # 5. Отрисовка трейла
             for i, (x, y) in enumerate(self.trail):
                 alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
@@ -370,26 +375,32 @@ class GameScreen(QWidget):
                                                                                       "interpolate_color") else self.trail_start_color
                 interpolated_color.setAlpha(max(0, alpha))  # Устанавливаем прозрачность
                 self.painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
+
             # 6. Отрисовка игрока
             if self.player:
-                self.painter.fillRect(self.player.get_rect(), self.player_brush)
+                self.player.draw_player_light(self.painter)
+
             # 7. Отрисовка препятствий
             for obstacle in self.obstacles:
                 if obstacle and obstacle.get_rect():
                     self.painter.fillRect(obstacle.get_rect(), self.obstacle_brush)
+
             # 8. Отрисовка опор ЛЭП
             for tower in self.transmission_towers:
                 if tower:
                     tower.draw(self.painter)
+
             # 9. Отрисовка паверапа скорости
             for powerup in self.active_powerups:
                 if powerup and powerup.get_rect():
                     self.painter.fillRect(powerup.get_rect(), self.powerup_brush)
+
             # 10. Отрисовка оголенного провода
             for exposed_wire in self.exposed_wires:
                 if exposed_wire and exposed_wire.get_rect():
                     self.painter.fillRect(exposed_wire.get_rect(), self.exposed_wire_brush)
-            # 12. Фонарь при переходе ночи
+
+            # 11. Фонарь при переходе ночи
             if self.day_night.should_draw_light():
                 light_pos = self.mapFromGlobal(self.cursor().pos())
                 if 0 <= light_pos.x() < self.width() and 0 <= light_pos.y() < self.height():
@@ -400,6 +411,7 @@ class GameScreen(QWidget):
                     self.painter.setBrush(light_gradient)
                     self.painter.setPen(Qt.NoPen)
                     self.painter.drawEllipse(light_pos, light_radius, light_radius)
+
             # Отображение текста
             if self.target_distance > 0:
                 text = f"Пройдено: {int(self.distance_traveled)} м / {self.target_distance} м"
@@ -413,6 +425,7 @@ class GameScreen(QWidget):
                 self.painter.drawText(10, 60, fps_text)
             timer_text = f"Время: {self.elapsed_time:.1f} сек"
             self.painter.drawText(10, 90, timer_text)
+
         except Exception as e:
             print(f"Ошибка в paintEvent: {e}")
         finally:
