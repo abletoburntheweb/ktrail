@@ -10,10 +10,20 @@ class LeaderboardScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.previous_screen = None  # Атрибут для хранения предыдущего экрана
-        self.overlay = None  # Прозрачный слой для модального окна
-        self.leaderboard_widget = None  # Виджет таблицы рекордов
-        self.is_first_init = True  # Флаг первой инициализации
+        self.previous_screen = None
+        self.overlay = None
+        self.leaderboard_widget = None
+        self.is_first_init = True
+
+        self.custom_distance_names = {
+            " ": " ",
+            "25000": "Лянгасово",
+            "30000": "Сосновка",
+            "45000": "Мухино",
+            "58000": "Сулово"
+        }
+        self.initialize_distances()
+
         self.init_ui()
 
     def init_ui(self):
@@ -21,17 +31,16 @@ class LeaderboardScreen(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
 
-        # Заголовок
         title_label = QLabel("Таблица рекордов")
         title_label.setFont(QFont("Montserrat", 36, QFont.Bold))
         title_label.setStyleSheet("color: white; background-color: transparent;")
         layout.addWidget(title_label)
 
-        # Выпадающий список для выбора дистанции
         self.distance_combo = QComboBox()
         self.distance_combo.setFont(QFont("Montserrat", 18))
-        self.distance_combo.addItem("")  # Пустой элемент по умолчанию
-        self.distance_combo.addItems(["200 м", "500 м", "1000 м", "2000 м"])
+
+        for distance, custom_name in self.custom_distance_names.items():
+            self.distance_combo.addItem(custom_name)
         self.distance_combo.currentIndexChanged.connect(self.update_leaderboard)
         self.distance_combo.setStyleSheet("""
             QComboBox {
@@ -59,33 +68,27 @@ class LeaderboardScreen(QWidget):
         """)
         layout.addWidget(self.distance_combo)
 
-        # Создаем стек виджетов для заглушки и таблицы
         self.stack = QStackedWidget()
 
-        # Виджет заглушки
         self.placeholder = QLabel("Выберите дистанцию")
         self.placeholder.setFont(QFont("Montserrat", 24))
         self.placeholder.setStyleSheet("color: white; background-color: transparent;")
         self.placeholder.setAlignment(Qt.AlignCenter)
 
-        # Таблица рекордов
         self.leaderboard_table = QTableWidget()
-        self.leaderboard_table.setColumnCount(3)  # Три колонки: "Место", "Имя", "Время"
+        self.leaderboard_table.setColumnCount(3)
         self.leaderboard_table.setHorizontalHeaderLabels(["Место", "Имя", "Время"])
         self.leaderboard_table.setRowCount(0)
         self.leaderboard_table.setFont(QFont("Montserrat", 16))
         self.leaderboard_table.horizontalHeader().setStretchLastSection(True)
-        self.leaderboard_table.verticalHeader().setVisible(False)  # Скрываем вертикальные заголовки
+        self.leaderboard_table.verticalHeader().setVisible(False)
 
-        # Отключаем выделение ячеек
         self.leaderboard_table.setSelectionMode(QTableWidget.NoSelection)
 
-        # Настройка ширины столбцов
-        self.leaderboard_table.setColumnWidth(0, 100)  # Ширина первого столбца ("Место")
-        self.leaderboard_table.setColumnWidth(1, 200)  # Ширина второго столбца ("Имя")
-        self.leaderboard_table.setColumnWidth(2, 200)  # Ширина третьего столбца ("Время")
+        self.leaderboard_table.setColumnWidth(0, 100)
+        self.leaderboard_table.setColumnWidth(1, 200)
+        self.leaderboard_table.setColumnWidth(2, 200)
 
-        # Настройка скроллбара
         self.leaderboard_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.leaderboard_table.verticalScrollBar().setStyleSheet("""
             QScrollBar:vertical {
@@ -109,7 +112,6 @@ class LeaderboardScreen(QWidget):
             }
         """)
 
-        # Стилизация таблицы
         self.leaderboard_table.setStyleSheet("""
             QTableWidget {
                 background-color: rgba(0, 0, 0, 180);
@@ -140,13 +142,11 @@ class LeaderboardScreen(QWidget):
             }
         """)
 
-        # Добавляем виджеты в стек
         self.stack.addWidget(self.placeholder)
         self.stack.addWidget(self.leaderboard_table)
-        self.stack.setCurrentWidget(self.placeholder)  # Показываем заглушку по умолчанию
+        self.stack.setCurrentWidget(self.placeholder)
         layout.addWidget(self.stack)
 
-        # Кнопка "Закрыть"
         close_button = QPushButton("Закрыть")
         close_button.setFont(QFont("Montserrat", 18))
         close_button.setStyleSheet("""
@@ -166,29 +166,42 @@ class LeaderboardScreen(QWidget):
 
         self.setLayout(layout)
 
+    def initialize_distances(self):
+        all_distances = ["25000", "30000", "45000", "58000"]
+        try:
+            with open("config/leaderboard.json", "r") as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
+
+        for distance in all_distances:
+            if distance not in data:
+                data[distance] = []
+
+        with open("config/leaderboard.json", "w") as file:
+            json.dump(data, file, indent=4)
+
     def open_leaderboard(self):
         """Открытие экрана рекордов как модального окна."""
         print("Открытие таблицы рекордов...")
         if self.parent:
-            self.parent.play_select_sound()  # Воспроизведение звука select_click
+            self.parent.play_select_sound()
 
-        # Создаем прозрачный слой, который покрывает только правую часть экрана
         if not self.overlay:
-            self.overlay = QWidget(self.parent)  # Overlay привязывается к родительскому виджету
+            self.overlay = QWidget(self.parent)
             self.overlay.setGeometry(800, 0, 1120, 1080)  # Правая часть экрана (1920 - 800 = 1120)
-            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")  # Полупрозрачный фон
+            self.overlay.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
             self.overlay.hide()
 
-        # Создаем виджет таблицы рекордов
         if not self.leaderboard_widget:
-            self.leaderboard_widget = QWidget(self.overlay)  # Размещаем виджет на overlay
+            self.leaderboard_widget = QWidget(self.overlay)
             self.leaderboard_widget.setFixedSize(1020, 600)  # Размер виджета
             self.leaderboard_widget.move(50, 240)  # Центрируем по вертикали и горизонтали
             self.leaderboard_widget.setStyleSheet("""
                 background-color: rgba(0, 0, 0, 180);
                 border-radius: 10px;
             """)
-            self.init_ui()  # Инициализация интерфейса внутри виджета
+            self.init_ui()
 
         # При первом открытии сбрасываем выбор дистанции
         if self.is_first_init:
@@ -196,18 +209,15 @@ class LeaderboardScreen(QWidget):
             self.stack.setCurrentWidget(self.placeholder)  # Показываем заглушку
             self.is_first_init = False
 
-        # Показываем overlay и виджет рекордов
         self.overlay.show()
         self.fade(self.leaderboard_widget, duration=600)
 
     def close_leaderboard(self):
-        """Закрытие экрана рекордов."""
         if self.parent:
             self.parent.main_menu.close_leaderboard()
             self.parent.play_cancel_sound()
 
     def fade(self, widget, duration=500, hide_after=False):
-        """Анимация плавного появления/исчезновения виджета."""
         effect = QGraphicsOpacityEffect(widget)
         widget.setGraphicsEffect(effect)
         animation = QPropertyAnimation(effect, b"opacity")
@@ -220,67 +230,62 @@ class LeaderboardScreen(QWidget):
             animation.finished.connect(widget.hide)
 
     def set_previous_screen(self, screen_name):
-        """Устанавливает предыдущий экран."""
         self.previous_screen = screen_name
 
     def update_leaderboard(self):
         """Обновление таблицы рекордов на основе выбранной дистанции."""
-        if self.distance_combo.currentIndex() == 0:  # Если выбран пустой элемент
+        selected_custom_name = self.distance_combo.currentText()
+        if not selected_custom_name:
             self.stack.setCurrentWidget(self.placeholder)
             return
 
-        selected_distance = self.distance_combo.currentText()  # Например, "200 м"
-        distance = int(selected_distance.split()[0])  # Извлекаем число (например, 200)
+        distance = None
+        for real_distance, custom_name in self.custom_distance_names.items():
+            if custom_name == selected_custom_name:
+                distance = int(real_distance)
+                break
 
-        # Получаем данные из файла рекордов
+        if not distance:
+            self.stack.setCurrentWidget(self.placeholder)
+            return
+
         records = self.load_records(distance)
 
-        # Очищаем таблицу
         self.leaderboard_table.setRowCount(0)
 
-        # Заполняем таблицу данными
         for i, record in enumerate(records):
-            self.leaderboard_table.insertRow(i)  # Добавляем строку
-            place_item = QTableWidgetItem(str(i + 1))  # Место
-            name_item = QTableWidgetItem(record["name"])  # Имя
-            time_item = QTableWidgetItem(f"{record['time']:.2f} сек")  # Время
+            self.leaderboard_table.insertRow(i)
+            place_item = QTableWidgetItem(str(i + 1))
+            name_item = QTableWidgetItem(record["name"])
+            time_item = QTableWidgetItem(f"{record['time']:.2f} сек")
 
-            # Отключаем возможность редактирования
             place_item.setFlags(place_item.flags() & ~Qt.ItemIsEditable)
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
             time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
 
             # Подсветка первых трех мест
             if i == 0:  # Золото
-                place_item.setBackground(QColor(255, 215, 0, 100))  # Золотая подсветка
+                place_item.setBackground(QColor(255, 215, 0, 100))
                 name_item.setBackground(QColor(255, 215, 0, 100))
                 time_item.setBackground(QColor(255, 215, 0, 100))
             elif i == 1:  # Серебро
-                place_item.setBackground(QColor(192, 192, 192, 100))  # Серебряная подсветка
+                place_item.setBackground(QColor(192, 192, 192, 100))
                 name_item.setBackground(QColor(192, 192, 192, 100))
                 time_item.setBackground(QColor(192, 192, 192, 100))
             elif i == 2:  # Бронза
-                place_item.setBackground(QColor(205, 127, 50, 100))  # Бронзовая подсветка
+                place_item.setBackground(QColor(205, 127, 50, 100))
                 name_item.setBackground(QColor(205, 127, 50, 100))
                 time_item.setBackground(QColor(205, 127, 50, 100))
 
-            # Устанавливаем элементы в таблицу
-            self.leaderboard_table.setItem(i, 0, place_item)  # Место
-            self.leaderboard_table.setItem(i, 1, name_item)  # Имя
-            self.leaderboard_table.setItem(i, 2, time_item)  # Время
+            self.leaderboard_table.setItem(i, 0, place_item)
+            self.leaderboard_table.setItem(i, 1, name_item)
+            self.leaderboard_table.setItem(i, 2, time_item)
 
-        # Прокручиваем таблицу до начала
         self.leaderboard_table.scrollToTop()
 
-        # Переключаем на таблицу
         self.stack.setCurrentWidget(self.leaderboard_table)
 
     def load_records(self, distance):
-        """
-        Загрузка рекордов для указанной дистанции.
-        :param distance: Дистанция (в метрах).
-        :return: Список записей в порядке убывания (лучшее время сверху).
-        """
         try:
             with open("config/leaderboard.json", "r") as file:
                 data = json.load(file)
@@ -288,35 +293,23 @@ class LeaderboardScreen(QWidget):
             data = {}
 
         records = data.get(str(distance), [])
-        # Сортируем записи по времени (по возрастанию)
-        sorted_records = sorted(records, key=lambda x: x["time"])[:15]  # Ограничиваем до 15 лучших
+        sorted_records = sorted(records, key=lambda x: x["time"])[:15]
         return sorted_records
 
     def save_record(self, distance, name, time):
-        """
-        Сохранение нового рекорда в файл.
-        :param distance: Дистанция (в метрах).
-        :param name: Имя игрока.
-        :param time: Время (в секундах).
-        """
         try:
             with open("config/leaderboard.json", "r") as file:
                 data = json.load(file)
         except FileNotFoundError:
             data = {}
 
-        # Получаем текущие записи для дистанции
         records = data.get(str(distance), [])
 
-        # Добавляем новый рекорд
         records.append({"name": name, "time": time})
 
-        # Сортируем записи по времени (по возрастанию)
-        sorted_records = sorted(records, key=lambda x: x["time"])[:15]  # Ограничиваем до 15 лучших
+        sorted_records = sorted(records, key=lambda x: x["time"])[:15]
 
-        # Обновляем данные
         data[str(distance)] = sorted_records
 
-        # Сохраняем обратно в файл
         with open("config/leaderboard.json", "w") as file:
             json.dump(data, file, indent=4)
