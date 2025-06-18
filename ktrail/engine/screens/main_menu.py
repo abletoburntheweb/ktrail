@@ -1,3 +1,5 @@
+import json
+
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QGraphicsOpacityEffect, QStackedWidget, QLineEdit
 from PyQt5.QtGui import QPixmap, QFont, QRegExpValidator
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QParallelAnimationGroup, QPointF, QRegExp
@@ -27,8 +29,11 @@ class MainMenu(QWidget):
         self.init_ui()
         self.init_intro()
 
+        # Загрузка имени пользователя из leaderboard.json
+        self.load_username()
+
         # Добавляем QLabel для отображения имени пользователя
-        self.username_label = QLabel("ABC", self)
+        self.username_label = QLabel(self.username, self)
         self.username_label.setFont(QFont("Montserrat", 24))
         self.username_label.setStyleSheet("color: white;")
         self.username_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
@@ -65,10 +70,7 @@ class MainMenu(QWidget):
 
         # Добавляем плейсхолдер
         self.username_edit.setPlaceholderText("ABC")  # Плейсхолдер с примером
-
-        # Подключаем обработчик изменения текста
         self.username_edit.textChanged.connect(self.validate_username)
-
         self.username_edit.hide()  # Скрываем поле редактирования изначально
 
     def paintEvent(self, event):
@@ -187,6 +189,30 @@ class MainMenu(QWidget):
         widget.animation = animation
         animation.start()
 
+    def load_username(self):
+        """Загружает имя пользователя из leaderboard.json."""
+        try:
+            with open('config/leaderboard.json', 'r') as file:
+                data = json.load(file)
+                self.username = data.get("username", "ABC")  # По умолчанию "ABC"
+        except FileNotFoundError:
+            # Если файл не существует, создаем его с дефолтным именем
+            self.username = "ABC"
+            self.save_username_to_file()
+
+    def save_username_to_file(self):
+        """Сохраняет имя пользователя в leaderboard.json."""
+        try:
+            with open('config/leaderboard.json', 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = {}
+
+        data["username"] = self.username
+
+        with open('config/leaderboard.json', 'w') as file:
+            json.dump(data, file, indent=4)
+
     def edit_username(self, event):
         """Переключение в режим редактирования имени."""
         if self.parent:
@@ -241,9 +267,11 @@ class MainMenu(QWidget):
         """
         new_name = self.username_edit.text().upper()  # Преобразуем в верхний регистр
         if len(new_name) == 3:  # Проверяем длину имени (ровно 3 символа)
+            self.username = new_name
             self.username_label.setText(new_name)
             self.username_edit.hide()
             self.username_label.show()
+            self.save_username_to_file()  # Сохраняем имя в файл
         else:
             print("Ошибка: имя должно содержать ровно 3 символа.")
             self.validate_username()  # Подсвечиваем красную рамку
