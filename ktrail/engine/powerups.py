@@ -1,20 +1,13 @@
 from random import choice
 from PyQt5.QtCore import QRect, QTimer
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QPixmap
 
 
 class PowerUp:
-    """
-    Базовый класс для всех паверапов.
-    """
-    def __init__(self, screen_width, screen_height, size=40, duration=7000):
-        """
-        :param screen_width: Ширина экрана.
-        :param screen_height: Высота экрана.
-        :param size: Размер паверапа (ширина и высота).
-        :param duration: Длительность эффекта в миллисекундах.
-        """
-        self.x_positions = [704, 954, 1204]  # Координаты x для паверапов
+
+    def __init__(self, screen_width, screen_height, size=100, duration=7000):
+
+        self.x_positions = [662, 916, 1162]  # Координаты x для паверапов
         self.size = size
         self.x = choice(self.x_positions)  # Случайный выбор позиции
         self.y = -self.size  # Начальная позиция за пределами экрана
@@ -23,45 +16,29 @@ class PowerUp:
         self.is_active = False  # Флаг активации паверапа
         self.timer = QTimer()  # Таймер для отслеживания длительности эффекта
 
-    def move(self):
-        """
-        Перемещение паверапа вниз.
-        """
-        self.y += self.speed
+        self.texture = QPixmap("assets/textures/bat.png")
+
+    def draw(self, painter):
+        if not self.texture.isNull():
+            painter.drawPixmap(self.x, self.y, 100, 100, self.texture)
+
+    def move(self, speed):
+        self.y += speed
 
     def activate(self, player):
-        """
-        Активация паверапа.
-        :param player: Экземпляр игрока.
-        """
         raise NotImplementedError("Метод activate должен быть реализован в дочерних классах.")
 
     def deactivate(self, player):
-        """
-        Деактивация паверапа.
-        :param player: Экземпляр игрока.
-        """
         raise NotImplementedError("Метод deactivate должен быть реализован в дочерних классах.")
 
     def get_rect(self):
-        """
-        Возвращает прямоугольник для проверки коллизий.
-        """
-        return QRect(self.x, self.y, self.size, self.size)
+        return QRect(self.x, self.y, 100, 100)
 
     def is_off_screen(self, delete_y):
-        """
-        Проверяет, достиг ли паверап заданной координаты y.
-        :param delete_y: Координата y, на которой паверап должен быть удален.
-        :return: True, если паверап достиг или пересек delete_y.
-        """
         return self.y >= delete_y
 
 
 class SpeedBoost(PowerUp):
-    """
-    Паверап, увеличивающий скорость игрока.
-    """
     def __init__(self, screen_width, screen_height, size=40, duration=7000, boost_amount=30):
         super().__init__(screen_width, screen_height, size, duration)
         self.boost_amount = boost_amount
@@ -70,11 +47,6 @@ class SpeedBoost(PowerUp):
         self.color = QColor("#00FF00")  # Зеленый цвет
 
     def activate(self, player, game_screen):
-        """
-        Активация бустера скорости.
-        :param player: Экземпляр игрока.
-        :param game_screen: Экземпляр игрового экрана (GameScreen).
-        """
         if not self.is_active:
             self.is_active = True
             # Сохраняем исходные данные о скорости
@@ -92,12 +64,8 @@ class SpeedBoost(PowerUp):
             self.timer.timeout.connect(lambda: self.deactivate(player, game_screen))
             self.timer.start(self.duration)
 
+
     def deactivate(self, player, game_screen):
-        """
-        Деактивация бустера скорости.
-        :param player: Экземпляр игрока.
-        :param game_screen: Экземпляр игрового экрана (GameScreen).
-        """
         if self.is_active:
             self.is_active = False
             # Восстанавливаем исходные уровни скорости

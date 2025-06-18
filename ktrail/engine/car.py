@@ -24,8 +24,9 @@ class Car:
         if self.texture and not self.is_off_screen():
             painter.drawPixmap(self.x, self.y, self.texture)
 
-    def move(self):
-        self.y -= self.speed
+    def move(self, speed):
+        self.y -= self.speed - speed//4
+
 
     def is_off_screen(self):
         return self.y + self.height < 0
