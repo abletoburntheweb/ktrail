@@ -90,7 +90,7 @@ class RotatingPanel(QLabel):
         tile_w = widget.width() // cols
         tile_h = widget.height() // rows
 
-        background_pixmap = QPixmap("assets/textures/logo.png")
+        background_pixmap = QPixmap("assets/textures/bs.png")
         background_label = QLabel(widget)
         background_label.setPixmap(
             background_pixmap.scaled(widget.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
@@ -128,7 +128,7 @@ class RotatingPanel(QLabel):
         tile_w = widget.width() // cols
         tile_h = widget.height() // rows
 
-        background_pixmap = QPixmap("assets/textures/logo.png")
+        background_pixmap = QPixmap("assets/textures/bs.png")
         background_label = QLabel(widget)
         background_label.setPixmap(
             background_pixmap.scaled(widget.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
