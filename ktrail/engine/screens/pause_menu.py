@@ -43,7 +43,7 @@ class PauseMenu(QWidget):
                                               stop:0 rgba(0,0,0,250), stop:1 rgba(0,0,0,40));
         """)
 
-        self.title_label = self.create_label("Пауза", font_size=96, bold=True, x=225, y=220, w=600, h=150)
+        self.title_label = self.create_label("||", font_size=96, bold=True, x=225, y=220, w=600, h=150)
 
         self.continue_button = self.create_button("Продолжить", self.continue_game, x=self.b_x, y=self.b_y, w=750, h=55)
         self.settings_button = self.create_button("Настройки", self.open_settings, x=self.b_x, y=self.b_y + 80, w=750, h=55)
@@ -104,7 +104,7 @@ class PauseMenu(QWidget):
 
     def create_label(self, text, font_size=18, bold=False, x=0, y=0, w=200, h=50):
         label = QLabel(text, self)
-        font = QFont("Montserrat", font_size)
+        font = QFont("Consolas", font_size)
         if bold:
             font.setBold(True)
         label.setFont(font)
