@@ -6,7 +6,6 @@ from PyQt5.QtGui import QColor, QPixmap
 class PowerUp:
 
     def __init__(self, screen_width, screen_height, size=100, duration=7000):
-
         self.x_positions = [662, 916, 1162]
         self.size = size
         self.x = choice(self.x_positions)
@@ -60,7 +59,6 @@ class SpeedBoost(PowerUp):
             self.timer.timeout.connect(lambda: self.deactivate(player, game_screen))
             self.timer.start(self.duration)
 
-
     def deactivate(self, player, game_screen):
         if self.is_active:
             self.is_active = False
@@ -71,3 +69,79 @@ class SpeedBoost(PowerUp):
             if hasattr(game_screen, "toggle_green_stage"):
                 game_screen.toggle_green_stage(False)
             self.timer.stop()
+
+
+class SpeedBoostDuo:
+    def __init__(self, screen_width, screen_height, side="left", size=40, duration=7000, boost_amount=30):
+        self.side = side
+        if side == "left":
+            self.x_positions = [73, 327, 567]
+        else:
+            self.x_positions = [1313, 1567, 1807]
+
+        self.size = size
+        self.x = choice(self.x_positions)
+        self.y = -self.size
+        self.speed = 10
+        self.duration = duration
+        self.boost_amount = boost_amount
+        self.is_active = False
+        self.timer = QTimer()
+        self.texture = QPixmap("assets/textures/bat.png")
+        self.original_speed_levels = None
+        self.original_current_speed_index = None
+        self.color = QColor("#00FF00")
+
+    def draw(self, painter):
+        if not self.texture.isNull():
+            painter.drawPixmap(self.x, self.y, 40, 40, self.texture)
+
+    def move(self, speed):
+        self.y += speed
+
+    def activate(self, player, game_screen):
+        if not self.is_active:
+            self.is_active = True
+
+            self.original_speed_levels = player.speed_levels[:]
+            self.original_current_speed_index = player.current_speed_index
+
+            player.speed_levels = [30]
+            player.current_speed_index = 0
+            player.speed = 30
+            player.can_change_speed = False
+            player.is_speed_boost_active = True
+
+            if hasattr(game_screen, "toggle_green_stage"):
+                game_screen.toggle_green_stage(True, player.player_id)
+
+            self.timer.timeout.connect(lambda: self.deactivate(player, game_screen))
+            self.timer.start(self.duration)
+
+    def deactivate(self, player, game_screen):
+        if self.is_active:
+            self.is_active = False
+
+            if self.original_speed_levels and self.original_current_speed_index is not None:
+                player.speed_levels = self.original_speed_levels
+                player.current_speed_index = self.original_current_speed_index
+                player.speed = player.speed_levels[player.current_speed_index]
+            else:
+                default_speed_levels = [10, 15, 20, 25, 30]
+                player.speed_levels = default_speed_levels
+                player.current_speed_index = 2
+                player.speed = default_speed_levels[2]
+
+            player.can_change_speed = True
+            player.is_speed_boost_active = False
+
+            if hasattr(game_screen, "toggle_green_stage"):
+                game_screen.toggle_green_stage(False, player.player_id)
+
+            self.timer.stop()
+
+    def get_rect(self):
+        return QRect(self.x, self.y, 40, 40)
+
+    def is_off_screen(self, delete_y):
+        return self.y >= delete_y

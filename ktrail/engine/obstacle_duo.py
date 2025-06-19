@@ -6,13 +6,12 @@ from PyQt5.QtWidgets import QGraphicsItem
 
 class ObstacleDuo:
     def __init__(self, screen_width=1920, screen_height=1080, size=40):
-        self.x_positions = [600, 700, 800, 1100, 1200, 1300]  # Все полосы
+        self.x_positions = [600, 700, 800, 1100, 1200, 1300]
         self.x = choice(self.x_positions)
         self.y = -size
         self.size = size
         self.speed = 10
 
-        # Текстура
         self.texture = QPixmap("assets/textures/damage.png")
 
     def move(self, speed):
@@ -20,7 +19,7 @@ class ObstacleDuo:
 
     def draw(self, painter):
         if not self.texture.isNull():
-            painter.drawPixmap(self.x+14, self.y, 12, self.size, self.texture)
+            painter.drawPixmap(self.x + 14, self.y, 12, self.size, self.texture)
 
     def get_rect(self):
         return QRect(self.x, self.y, self.size, self.size)
@@ -56,7 +55,6 @@ class Seporator:
             scaled_texture = self.texture.scaled(self.line_width, screen_height)
             line_x = self.x
             painter.drawPixmap(line_x, 0, scaled_texture.width(), scaled_texture.height(), scaled_texture)
-
 
 
 class TransmissionTowerDuo:
@@ -100,10 +98,10 @@ class ExposedWireDuo:
 
     def draw(self, painter):
         if not self.texture.isNull():
-            painter.drawPixmap(self.x+14, self.y, self.line_width, self.height, self.texture)
+            painter.drawPixmap(self.x + 14, self.y, self.line_width, self.height, self.texture)
 
     def get_rect(self):
-        return QRect(self.x+14, self.y, self.line_width, self.height)
+        return QRect(self.x + 14, self.y, self.line_width, self.height)
 
     def is_off_screen(self, delete_y):
         return self.y >= delete_y
