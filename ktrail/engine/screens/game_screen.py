@@ -389,6 +389,7 @@ class GameScreen(QWidget):
             self.player.change_speed(event.key())
 
     def set_target_distance(self, distance):
+        self.is_game_over = False
         self.target_distance = distance
         self.distance_traveled = 0
         self.start_time = perf_counter()
@@ -601,7 +602,6 @@ class GameScreen(QWidget):
         msg.setIcon(QMessageBox.Critical)
         choice = msg.exec_()
         if choice == QMessageBox.Retry:
-            self.is_game_over = False
             self.set_target_distance(self.target_distance)
             if self.parent:
                 self.parent.play_music(self.parent.game_music_path)

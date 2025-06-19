@@ -511,6 +511,7 @@ class GameScreenDuo(QWidget):
                 self.player2.change_speed(event.key())
 
     def set_target_distance(self, distance):
+        self.is_game_over = False
         self.target_distance = distance
         self.distance_traveled_player1 = 0
         self.distance_traveled_player2 = 0
