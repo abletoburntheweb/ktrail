@@ -401,7 +401,7 @@ class GameScreen(QWidget):
         self.exposed_wires.clear()
         self.transmission_towers.clear()
         self.tile_manager.init_tiles()
-        self.timer.start(16)
+        self.timer.start(12)
         self.obstacle_spawn_timer.start(2000)
         self.car_spawn_timer.start(5000)
         self.tower_spawn_timer.start(8000)
@@ -410,7 +410,6 @@ class GameScreen(QWidget):
         self.powerup_spawn_timer.start(15000)
         self.target_trail_x = self.player.x+15
         self.time_timer.start(self.day_night.tick_interval_ms)
-
     def update_game(self):
         if self.is_game_over:
             return
@@ -482,14 +481,14 @@ class GameScreen(QWidget):
         self.total_removed_obstacles += initial_count - len(self.transmission_towers)
 
         initial_count = len(self.obstacles)
-        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(540)]
+        self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.is_off_screen(1200)]
         self.total_removed_obstacles += initial_count - len(self.obstacles)
 
         for exposed_wire in self.exposed_wires:
             exposed_wire.move(self.player.speed)
 
         initial_count = len(self.exposed_wires)
-        self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(540)]
+        self.exposed_wires = [wire for wire in self.exposed_wires if not wire.is_off_screen(1200)]
         self.total_removed_obstacles += initial_count - len(self.exposed_wires)
 
         for car in self.cars:

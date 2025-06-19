@@ -109,9 +109,9 @@ class GameScreenDuo(QWidget):
         self.obstacle_brush = QBrush(Qt.black)
         self.street_lamp_brush = QBrush(Qt.darkGray)
         self.separator_brush = QBrush(QColor(128, 128, 128))
-        self.trail_start_color1 = QColor("#4aa0fc")
+        self.trail_start_color1 = QColor("#ff6b6b")
         self.trail_end_color1 = QColor("#FFFFFF")
-        self.trail_start_color2 = QColor("#ff6b6b")
+        self.trail_start_color2 = QColor("#4aa0fc")
         self.trail_end_color2 = QColor("#FFFFFF")
         self.font = QFont("Arial", 20)
         self.light_gradient = QRadialGradient()
@@ -515,7 +515,7 @@ class GameScreenDuo(QWidget):
         self.target_distance = distance
         self.distance_traveled_player1 = 0
         self.distance_traveled_player2 = 0
-        self.timer.start(16)
+        self.timer.start(12)
         self.time_timer.start(self.day_night.tick_interval_ms)
         self.obstacle_spawn_timer1.start(2000)
         self.obstacle_spawn_timer2.start(2000)
@@ -604,8 +604,8 @@ class GameScreenDuo(QWidget):
             for wire in self.exposed_wires2:
                 wire.move(self.player2.get_current_speed())
 
-            self.exposed_wires1 = [wire for wire in self.exposed_wires1 if not wire.is_off_screen(540)]
-            self.exposed_wires2 = [wire for wire in self.exposed_wires2 if not wire.is_off_screen(540)]
+            self.exposed_wires1 = [wire for wire in self.exposed_wires1 if not wire.is_off_screen(1200)]
+            self.exposed_wires2 = [wire for wire in self.exposed_wires2 if not wire.is_off_screen(1200)]
 
             for powerup in self.active_powerups1[:]:
                 if powerup:
