@@ -22,32 +22,23 @@ class Player:
         self.short_circuit_timer.timeout.connect(self.update_short_circuit)
         self.short_circuit_timer.start(100)
 
-        # Новый функционал: фонарик (всегда включен)
-        self.light_radius = 80  # Радиус светового эффекта
-        self.light_color = QColor("#ff6b6b")  # Красный цвет света
-        self.is_light_on = True  # Свет всегда включен
+        self.light_radius = 80
+        self.light_color = QColor("#ff6b6b")
+        self.is_light_on = True
 
     def draw_player_light(self, painter):
-        """
-        Отрисовка светового эффекта вокруг игрока.
-        :param painter: QPainter для отрисовки.
-        """
         if self.is_light_on:
-            # Параметры света
-            light_radius = 80  # Радиус светового эффекта
-            light_color = QColor("#4aa0fc")  # Красный цвет света
+            light_radius = 80
+            light_color = QColor("#4aa0fc")
 
-            # Центр света (центр игрока)
-            player_rect = self.get_rect()  # Получаем прямоугольник игрока
+            player_rect = self.get_rect()
             light_pos_x = player_rect.center().x()
             light_pos_y = player_rect.center().y()
 
-            # Создаем радиальный градиент
             gradient = QRadialGradient(light_pos_x, light_pos_y, light_radius)
             gradient.setColorAt(0, light_color)
-            gradient.setColorAt(1, QColor(255, 240, 200, 0))  # Плавное затухание к краям
+            gradient.setColorAt(1, QColor(255, 240, 200, 0))
 
-            # Отрисовываем свет
             painter.setBrush(gradient)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(
