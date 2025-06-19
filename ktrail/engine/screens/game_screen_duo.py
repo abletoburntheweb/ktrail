@@ -2,7 +2,7 @@
 from random import choice
 from time import perf_counter
 from PyQt5.QtCore import Qt, QTimer, QRect
-from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
+from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar, QLabel
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont, QPixmap
 
 from engine.player_duo import PlayerDuo
@@ -20,7 +20,7 @@ class GameScreenDuo(QWidget):
         self.distance_traveled_player1 = 0
         self.distance_traveled_player2 = 0
         self.meters_per_frame = 0.1
-        self.speed_to_meters_coefficient = 0.01
+        self.speed_to_meters_coefficient = 0.3
         self.speed = 10
         self.init_ui()
         # Добавляем переменные для расчета FPS
@@ -90,6 +90,8 @@ class GameScreenDuo(QWidget):
         #Сепо
         self.sepo = Seporator()
 
+        self.init_side_panels()
+
         # Трейлы для обоих игроков
         self.max_trail_length = 20  # Максимальная длина трейла
         self.trail1 = []  # Используем list вместо deque
@@ -151,6 +153,205 @@ class GameScreenDuo(QWidget):
         self.setWindowTitle("Дуо режим")
         self.setFixedSize(1920, 1080)
 
+    def init_side_panels(self):
+        """Инициализация боковых панелей."""
+        self.setFixedSize(1920, 1080)
+        # Правая панель
+        self.right_panel = QLabel(self)
+        right_panel_pixmap = QPixmap("assets/textures/side_panel_duo.png")
+        if not right_panel_pixmap.isNull():
+            self.right_panel.setPixmap(right_panel_pixmap)
+            self.right_panel.setScaledContents(True)
+            self.right_panel.setGeometry(
+                self.width() - right_panel_pixmap.width(),
+                0,
+                right_panel_pixmap.width(),
+                right_panel_pixmap.height()
+            )
+        else:
+            print("Ошибка: Изображение правой панели не загружено!")
+
+        # Левая панель
+        self.left_panel = QLabel(self)
+        left_panel_pixmap = QPixmap("assets/textures/side_panel_left_duo.png")
+        if not left_panel_pixmap.isNull():
+            self.left_panel.setPixmap(left_panel_pixmap)
+            self.left_panel.setScaledContents(True)
+            self.left_panel.setGeometry(
+                0,
+                0,
+                left_panel_pixmap.width(),
+                left_panel_pixmap.height()
+            )
+        else:
+            print("Ошибка: Изображение левой панели не загружено!")
+
+        # Создаем контейнеры для виджетов на боковых панелях
+        # Правая панель
+        self.side_panel_container = QWidget(self)
+        self.side_panel_container.setGeometry(
+            self.width() - right_panel_pixmap.width(),
+            0,
+            right_panel_pixmap.width(),
+            right_panel_pixmap.height()
+        )
+        self.side_panel_container.setStyleSheet("background-color: transparent;")
+        self.side_panel_container.raise_()
+
+        # Левая панель
+        self.side_panel_left_container = QWidget(self)
+        self.side_panel_left_container.setGeometry(
+            0,
+            0,
+            left_panel_pixmap.width(),
+            left_panel_pixmap.height()
+        )
+        self.side_panel_left_container.setStyleSheet("background-color: transparent;")
+        self.side_panel_left_container.raise_()
+
+        # Списки для хранения изображений speed и short circuit
+        self.speed_images_player1 = []
+        self.short_circuit_images_player1 = []
+        self.speed_images_player2 = []
+        self.short_circuit_images_player2 = []
+
+        # Координаты для правого игрока
+        self.short_circuit_rect_right = {
+            'x': 95,
+            'y': 60,
+            'width': 60,
+            'height': 70
+        }
+        self.speed_rect_right = {
+            'x': 195,
+            'y': 80,
+            'width': 30,
+            'height': 30
+        }
+
+        # Координаты для левого игрока
+        self.short_circuit_rect_left = {
+            'x': 480,
+            'y': 60,
+            'width': 60,
+            'height': 70
+        }
+        self.speed_rect_left = {
+            'x': 380,
+            'y': 80,
+            'width': 30,
+            'height': 30
+        }
+
+        # Создание виджетов для правого игрока
+        self.create_speed_labels(self.speed_rect_right, self.short_circuit_rect_right, is_right=True)
+
+        # Создание виджетов для левого игрока
+        self.create_speed_labels(self.speed_rect_left, self.short_circuit_rect_left, is_right=False)
+
+    def create_speed_labels(self, speed_rect, short_circuit_rect, is_right):
+        """Создание виджетов для отображения скорости и КЗ."""
+        container = self.side_panel_container if is_right else self.side_panel_left_container
+
+        # Виджеты для скорости (максимум 4 изображения)
+        for _ in range(4):  # Максимум 4 изображения скорости
+            image_path = "assets/textures/speed.png" if is_right else "assets/textures/speed2.png"
+            labels = self.speed_images_player1 if is_right else self.speed_images_player2
+            self.add_speed_image(labels, container, speed_rect)
+
+        # Виджеты для КЗ (максимум 3 стадии)
+        for i in range(3):  # Максимум 3 стадии КЗ
+            image_path = f"assets/textures/{['f', 's', 't'][i]}_stage.png" if is_right else f"assets/textures/{['f', 's', 't'][i]}_stage2.png"
+            labels = self.short_circuit_images_player1 if is_right else self.short_circuit_images_player2
+            self.add_short_circuit_image(image_path, labels, container, short_circuit_rect)
+
+    def add_speed_image(self, labels, container, rect):
+        """Добавляет изображение скорости."""
+        if len(labels) >= 4:  # Ограничение: максимум 4 изображения
+            return
+
+        image_path = "assets/textures/speed.png" if "speed2" not in str(labels) else "assets/textures/speed2.png"
+        speed_image_label = QLabel(container)
+        speed_image_pixmap = QPixmap(image_path)
+        if speed_image_pixmap.isNull():
+            print(f"Ошибка: Изображение {image_path} не загружено!")
+            return
+
+        speed_image_label.setPixmap(speed_image_pixmap)
+        speed_image_label.setScaledContents(False)
+        image_width = speed_image_pixmap.width()
+        image_height = speed_image_pixmap.height()
+
+        base_x = rect['x']
+        base_y = rect['y']
+        y_position = base_y if len(labels) == 0 else labels[-1].y() - image_height
+
+        speed_image_label.setGeometry(base_x, y_position, image_width, image_height)
+        speed_image_label.hide()  # Скрыть по умолчанию
+        labels.append(speed_image_label)
+
+    def add_short_circuit_image(self, image_path, labels, container, rect):
+        """Добавляет изображение стадии КЗ."""
+        short_circuit_image_label = QLabel(container)
+        short_circuit_image_pixmap = QPixmap(image_path)
+        if short_circuit_image_pixmap.isNull():
+            print(f"Ошибка: Изображение {image_path} не загружено!")
+            return
+
+        short_circuit_image_label.setPixmap(short_circuit_image_pixmap)
+        short_circuit_image_label.setScaledContents(False)
+        image_width = short_circuit_image_pixmap.width()
+        image_height = short_circuit_image_pixmap.height()
+
+        base_x = rect['x']
+        base_y = rect['y']
+        y_position = base_y if len(labels) == 0 else labels[-1].y() - image_height
+
+        short_circuit_image_label.setGeometry(base_x, y_position, image_width, image_height)
+        short_circuit_image_label.hide()  # Скрыть по умолчанию
+        labels.append(short_circuit_image_label)
+
+    def remove_speed_image(self, labels):
+        """Удаляет последнее изображение скорости."""
+        if not labels:
+            return
+        last_label = labels.pop()
+        last_label.deleteLater()
+
+    def remove_short_circuit_image(self, labels):
+        """Удаляет последнее изображение КЗ."""
+        if not labels:
+            return
+        last_label = labels.pop()
+        last_label.deleteLater()
+
+    def update_speed_images(self, player, speed_images):
+        """Обновление изображений скорости"""
+        current_speed_level = player.get_current_speed_level()
+        for i, image in enumerate(speed_images):
+            if i < current_speed_level:
+                image.show()
+            else:
+                image.hide()
+
+    def update_short_circuit_images(self, player, short_circuit_images):
+        """Обновление изображений КЗ"""
+        short_circuit_level = player.get_short_circuit_level()
+        if short_circuit_level >= 40 and short_circuit_level < 60:
+            short_circuit_images[0].show()  # f_stage
+            short_circuit_images[1].hide()  # s_stage
+            short_circuit_images[2].hide()  # t_stage
+        elif short_circuit_level >= 60 and short_circuit_level < 80:
+            short_circuit_images[0].show()  # f_stage
+            short_circuit_images[1].show()  # s_stage
+            short_circuit_images[2].hide()  # t_stage
+        elif short_circuit_level >= 80:
+            short_circuit_images[0].show()  # f_stage
+            short_circuit_images[1].show()  # s_stage
+            short_circuit_images[2].show()  # t_stage
+        else:
+            for image in short_circuit_images:
+                image.hide()
     def update_day_night(self):
         self.day_night.update_time()
         self.update()
@@ -356,20 +557,29 @@ class GameScreenDuo(QWidget):
         """Обновление состояния игры."""
         if self.is_game_over:
             return
+
         # Получаем скорости игроков
         speed_player1 = self.player1.get_current_speed()
         speed_player2 = self.player2.get_current_speed()
+
         # Обновление пройденного расстояния для каждого игрока
         meters_this_frame_player1 = speed_player1 * self.speed_to_meters_coefficient
         meters_this_frame_player2 = speed_player2 * self.speed_to_meters_coefficient
+
         # Учитываем штраф за столкновение или переполнение КЗ
-        self.distance_traveled_player1 = max(0,
-                                             self.distance_traveled_player1 + meters_this_frame_player1 - self.player1.distance_penalty)
-        self.distance_traveled_player2 = max(0,
-                                             self.distance_traveled_player2 + meters_this_frame_player2 - self.player2.distance_penalty)
+        self.distance_traveled_player1 = max(
+            0,
+            self.distance_traveled_player1 + meters_this_frame_player1 - self.player1.distance_penalty
+        )
+        self.distance_traveled_player2 = max(
+            0,
+            self.distance_traveled_player2 + meters_this_frame_player2 - self.player2.distance_penalty
+        )
+
         # Сбрасываем штраф после применения
         self.player1.distance_penalty = 0
         self.player2.distance_penalty = 0
+
         # Проверка достижения целевой дистанции
         if self.distance_traveled_player1 >= self.target_distance:
             self.show_victory(winner="Игрок 1")
@@ -435,11 +645,22 @@ class GameScreenDuo(QWidget):
             self.fps = self.frame_count / elapsed_time
             self.frame_count = 0
             self.last_fps_update_time = current_time
+
         # Обновление прогресс-баров
         short_circuit_level_player1 = self.player1.get_short_circuit_level()
         short_circuit_level_player2 = self.player2.get_short_circuit_level()
         self.short_circuit_bar_player1.setValue(int(short_circuit_level_player1))
         self.short_circuit_bar_player2.setValue(int(short_circuit_level_player2))
+
+        # --- НОВЫЕ ВЫЗОВЫ ДЛЯ ОБНОВЛЕНИЯ ИЗОБРАЖЕНИЙ ---
+        # Обновление изображений скорости и стадий КЗ для обоих игроков
+        self.update_speed_images(self.player1, self.speed_images_player1)
+        self.update_short_circuit_images(self.player1, self.short_circuit_images_player1)
+
+        self.update_speed_images(self.player2, self.speed_images_player2)
+        self.update_short_circuit_images(self.player2, self.short_circuit_images_player2)
+
+        # Обновление интерфейса
         self.update()
 
     def update_trail(self, player, trail, current_trail_x, target_trail_x, color):

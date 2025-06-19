@@ -48,7 +48,7 @@ class PlayerDuo:
         self.is_visible = True  # Флаг видимости для мигания
         self.distance_penalty = 0  # Штраф за столкновение (в метрах)
 
-        self.light_radius = 120  # Радиус светового эффекта
+        self.light_radius = 80  # Радиус светового эффекта
         self.light_color = QColor("#ff6b6b") if player_id == 1 else QColor("#4aa0fc")  # Цвет света для player1 и player2 соответственно
         self.is_light_on = True  # Флаг для управления светом
 
@@ -102,6 +102,11 @@ class PlayerDuo:
         """Возвращает прямоугольник для коллизий."""
         return QRect(int(self.x), int(self.y), self.size, self.size)
 
+    def get_current_speed_level(self):
+        """
+        Возвращает текущий уровень скорости (индекс в speed_levels).
+        """
+        return self.current_speed_index + 1  # +1 для соответствия уровню (1-5 вместо 0-4)
     def get_current_speed(self):
         """Возвращает текущую скорость."""
         return self.speed

@@ -142,7 +142,6 @@ class DistanceSelection(QWidget):
                 self.parent.game_screen.set_target_distance(distance)
                 self.parent.setCurrentWidget(self.parent.game_screen)
             else:
-                self.parent.game_screen_duo.reset_game()
                 self.parent.game_screen_duo.set_target_distance(distance)
                 self.parent.setCurrentWidget(self.parent.game_screen_duo)
             self.is_duo = False
