@@ -15,8 +15,8 @@ class ObstacleDuo:
         # Текстура
         self.texture = QPixmap("assets/textures/damage.png")
 
-    def move(self):
-        self.y += self.speed
+    def move(self, speed):
+        self.y += speed
 
     def draw(self, painter):
         if not self.texture.isNull():
@@ -33,9 +33,7 @@ class PowerLineDuo:
     def __init__(self, line_width=12):
         self.line_width = line_width
 
-        self.x_positions = [600, 700, 800, 1100, 1200, 1300]
-
-        self.x = choice(self.x_positions)
+        self.x_positions = [73, 327, 567, 1313, 1567, 1807]
         self.texture = QPixmap("assets/textures/cabel.png")
 
     def draw(self, painter, screen_height):
@@ -46,34 +44,40 @@ class PowerLineDuo:
                 painter.drawPixmap(line_x, 0, scaled_texture.width(), scaled_texture.height(), scaled_texture)
 
 
+class Seporator:
+    def __init__(self, line_width=520):
+        self.line_width = line_width
+
+        self.x = 700
+        self.texture = QPixmap("assets/textures/sepo.png")
+
+    def draw(self, painter, screen_height):
+        if not self.texture.isNull():
+            scaled_texture = self.texture.scaled(self.line_width, screen_height)
+            line_x = self.x
+            painter.drawPixmap(line_x, 0, scaled_texture.width(), scaled_texture.height(), scaled_texture)
+
+
 
 class TransmissionTowerDuo:
-    def __init__(self, screen_height, player_side="left"):
+    def __init__(self, screen_height):
         self.platform_width = 600
         self.platform_height = 195
         self.screen_height = screen_height
         self.speed = 10
-
-        # Центральная полоса для каждой стороны
-        if player_side == "left":
-            self.x = 700
-        else:
-            self.x = 1200
+        self.x = 1300
 
         self.y = -self.platform_height - screen_height
-        self.platform = QRect(self.x, self.y, self.platform_width, self.platform_height)
 
         self.texture = QPixmap("assets/textures/lap.png")
 
     def move(self, speed):
         self.y += speed
-        self.platform.translate(0, speed)
 
     def draw(self, painter):
         if not self.texture.isNull():
+            self.platform = QRect(self.x, self.y, self.platform_width, self.platform_height)
             painter.drawPixmap(self.platform, self.texture)
-        else:
-            painter.fillRect(self.platform, QColor(255, 165, 0))
 
     def is_off_screen(self):
         return self.y >= self.screen_height
@@ -91,15 +95,15 @@ class ExposedWireDuo:
 
         self.texture = QPixmap("assets/textures/damage_m.png")
 
-    def move(self):
-        self.y += self.speed
+    def move(self, speed):
+        self.y += speed
 
     def draw(self, painter):
         if not self.texture.isNull():
             painter.drawPixmap(self.x+14, self.y, self.line_width, self.height, self.texture)
 
     def get_rect(self):
-        return QRect(self.x, self.y, self.line_width, self.height)
+        return QRect(self.x+14, self.y, self.line_width, self.height)
 
     def is_off_screen(self, delete_y):
         return self.y >= delete_y

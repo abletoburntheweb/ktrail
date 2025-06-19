@@ -3,15 +3,10 @@ from PyQt5.QtGui import QColor, QRadialGradient
 
 
 class PlayerDuo:
-    def __init__(self, player_id=1, y=780, size=40):
-        """
-        :param player_id: Идентификатор игрока (1 - справа, 2 - слева)
-        :param y: Начальная Y координата
-        :param size: Размер игрока (ширина и высота)
-        """
+    def __init__(self, player_id=1, y=840, size=40):
         # Определяем позиции в зависимости от игрока
         if player_id == 1:  # Игрок 1 (справа)
-            self.x_positions = [1100, 1200, 1300]  # Правая часть экрана
+            self.x_positions = [1313, 1567, 1807]  # Правая часть экрана
             self.controls = {
                 'left': Qt.Key_Left,
                 'right': Qt.Key_Right,
@@ -19,7 +14,7 @@ class PlayerDuo:
                 'slow_down': Qt.Key_Down
             }
         else:  # Игрок 2 (слева)
-            self.x_positions = [600, 700, 800]  # Левая часть экрана
+            self.x_positions = [73, 327, 567]  # Левая часть экрана
             self.controls = {
                 'left': Qt.Key_A,
                 'right': Qt.Key_D,
@@ -58,10 +53,6 @@ class PlayerDuo:
         self.is_light_on = True  # Флаг для управления светом
 
     def draw_light(self, painter):
-        """
-        Отрисовка света вокруг игрока.
-        :param painter: QPainter для отрисовки.
-        """
         if self.is_light_on:
             light_pos_x = self.x + self.size // 2
             light_pos_y = self.y + self.size // 2
@@ -76,7 +67,6 @@ class PlayerDuo:
                                 self.light_radius * 2)
 
     def move(self, key):
-        """Обработка движения игрока."""
         if key == self.controls['left']:  # Движение влево
             if self.current_x_index > 0:
                 self.current_x_index -= 1
@@ -87,7 +77,6 @@ class PlayerDuo:
                 self.x = self.x_positions[self.current_x_index]
 
     def change_speed(self, key):
-        """Изменение скорости игрока."""
         if not self.can_change_speed:
             return
 
