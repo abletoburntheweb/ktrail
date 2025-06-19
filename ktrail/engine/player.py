@@ -35,7 +35,7 @@ class Player:
         if self.is_light_on:
             # Параметры света
             light_radius = 80  # Радиус светового эффекта
-            light_color = QColor("#ff6b6b")  # Красный цвет света
+            light_color = QColor("#4aa0fc")  # Красный цвет света
 
             # Центр света (центр игрока)
             player_rect = self.get_rect()  # Получаем прямоугольник игрока
