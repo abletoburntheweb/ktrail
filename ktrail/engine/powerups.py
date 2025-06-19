@@ -72,12 +72,12 @@ class SpeedBoost(PowerUp):
 
 
 class SpeedBoostDuo:
-    def __init__(self, screen_width, screen_height, side="left", size=40, duration=7000, boost_amount=30):
+    def __init__(self, screen_width, screen_height, side="left", size=100, duration=7000, boost_amount=30):
         self.side = side
         if side == "left":
-            self.x_positions = [73, 327, 567]
+            self.x_positions = [38, 295, 538]
         else:
-            self.x_positions = [1313, 1567, 1807]
+            self.x_positions = [1280, 1537, 1778]
 
         self.size = size
         self.x = choice(self.x_positions)
@@ -94,7 +94,7 @@ class SpeedBoostDuo:
 
     def draw(self, painter):
         if not self.texture.isNull():
-            painter.drawPixmap(self.x, self.y, 40, 40, self.texture)
+            painter.drawPixmap(self.x, self.y, 100, 100, self.texture)
 
     def move(self, speed):
         self.y += speed
@@ -141,7 +141,7 @@ class SpeedBoostDuo:
             self.timer.stop()
 
     def get_rect(self):
-        return QRect(self.x, self.y, 40, 40)
+        return QRect(self.x, self.y, 100, 100)
 
     def is_off_screen(self, delete_y):
         return self.y >= delete_y
