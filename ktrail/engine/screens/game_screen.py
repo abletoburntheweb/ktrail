@@ -617,6 +617,7 @@ class GameScreen(QWidget):
             self.is_paused = not self.is_paused
         else:
             self.is_paused = True
+
         if self.is_paused:
             self.last_frame_pixmap = self.grab()
             print("Снимок экрана успешно захвачен:", not self.last_frame_pixmap.isNull())
@@ -626,6 +627,7 @@ class GameScreen(QWidget):
             self.car_spawn_timer.stop()
             self.exposed_wire_spawn_timer.stop()
             self.powerup_spawn_timer.stop()
+            self.player.pause_short_circuit_level()
             if self.parent:
                 self.parent.main_menu.current_mode = "single"
                 self.parent.pause_menu.set_last_frame(self.last_frame_pixmap)
@@ -638,3 +640,4 @@ class GameScreen(QWidget):
             self.exposed_wire_spawn_timer.start(3000)
             self.powerup_spawn_timer.start(15000)
             self.time_timer.start(self.day_night.tick_interval_ms)
+            self.player.resume_short_circuit_level()

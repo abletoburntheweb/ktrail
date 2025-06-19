@@ -17,6 +17,7 @@ class Player:
         self.can_change_speed = True
 
         self.short_circuit_level = 0
+        self.paused_short_circuit_level = None
         self.short_circuit_max = 100
         self.short_circuit_timer = QTimer()
         self.short_circuit_timer.timeout.connect(self.update_short_circuit)
@@ -85,6 +86,15 @@ class Player:
     def enable_speed_change(self):
         self.can_change_speed = True
 
+    def pause_short_circuit_level(self):
+        self.paused_short_circuit_level = self.short_circuit_level
+        self.short_circuit_timer.stop()
+
+    def resume_short_circuit_level(self):
+        if self.paused_short_circuit_level is not None:
+            self.short_circuit_level = self.paused_short_circuit_level
+            self.paused_short_circuit_level = None
+            self.short_circuit_timer.start(100)
     def update_short_circuit(self):
         if self.short_circuit_level <= 0 and self.current_speed_index < 2:
             return
