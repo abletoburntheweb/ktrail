@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont, QPixmap
 
 from engine.player_duo import PlayerDuo
-from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, StreetLampDuo, ExposedWireDuo
+from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, ExposedWireDuo
 from engine.day_night import DayNightSystem
 from engine.tile_manager_duo import TileManagerDuo
 from collections import deque
@@ -84,7 +84,7 @@ class GameScreenDuo(QWidget):
                """)
         self.short_circuit_bar_player2.show()
         # Линии
-        self.power_line_duo = PowerLineDuo(line_width=12, color="#89878c")
+        self.power_line_duo = PowerLineDuo()
         # Трейлы для обоих игроков
         self.max_trail_length = 20  # Максимальная длина трейла
         self.trail1 = []  # Используем list вместо deque
@@ -106,8 +106,6 @@ class GameScreenDuo(QWidget):
         self.transmission_towers2 = []  # Опоры ЛЭП для player2
         self.exposed_wires1 = []  # Оголенные провода для player1
         self.exposed_wires2 = []  # Оголенные провода для player2
-        self.street_lamps1 = []  # Фонари для player1
-        self.street_lamps2 = []  # Фонари для player2
         # Таймеры
         self.timer = QTimer(self)  # Основной игровой таймер
         self.timer.timeout.connect(self.update_game)
@@ -120,33 +118,16 @@ class GameScreenDuo(QWidget):
         # Таймеры спавна опор ЛЭП
         self.tower_spawn_timer1 = QTimer(self)
         self.tower_spawn_timer1.timeout.connect(self.spawn_transmission_tower1)
-        self.tower_spawn_timer1.start(3000)  # Спавн каждые 3 секунды для player1
+
         self.tower_spawn_timer2 = QTimer(self)
         self.tower_spawn_timer2.timeout.connect(self.spawn_transmission_tower2)
-        self.tower_spawn_timer2.start(3000)  # Спавн каждые 3 секунды для player2
-        # Таймеры спавна фонарей
-        self.lamp_spawn_timer1 = QTimer(self)
-        self.lamp_spawn_timer1.timeout.connect(self.spawn_street_lamp1)
-        self.lamp_spawn_timer2 = QTimer(self)
-        self.lamp_spawn_timer2.timeout.connect(self.spawn_street_lamp2)
-        # Запуск таймеров при старте игры
-        self.lamp_spawn_timer1.start(6000)  # Спавн каждые 6 секунд для player1
-        self.lamp_spawn_timer2.start(6000)  # Спавн каждые 6 секунд для player2
         # Таймеры спавна оголенных проводов
         self.exposed_wire_spawn_timer1 = QTimer(self)
         self.exposed_wire_spawn_timer1.timeout.connect(self.spawn_exposed_wire1)
         self.exposed_wire_spawn_timer2 = QTimer(self)
         self.exposed_wire_spawn_timer2.timeout.connect(self.spawn_exposed_wire2)
-        # Запуск таймеров при старте игры
-        self.exposed_wire_spawn_timer1.start(3000)  # Спавн каждые 3 секунды для player1
-        self.exposed_wire_spawn_timer2.start(3000)  # Спавн каждые 3 секунды для player2
         # Состояние игры
         self.is_game_over = False
-        # ВАЖНО: Таймеры НЕ запускаются автоматически
-        self.timer.stop()
-        self.obstacle_spawn_timer1.stop()
-        self.obstacle_spawn_timer2.stop()
-        self.time_timer.stop()
         # Создание объектов QPainter и QBrush один раз
         self.painter = QPainter()
         self.player1_brush = QBrush(Qt.red)
@@ -202,44 +183,31 @@ class GameScreenDuo(QWidget):
     def spawn_transmission_tower1(self):
         """Генерация дополнительной опоры ЛЭП для player1."""
         if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height(), central=False)
-            tower.x = choice([960, 1210])  # Левая и правая линия для player1
+            tower = TransmissionTowerDuo(screen_height=self.height())
             self.transmission_towers1.append(tower)
 
     def spawn_transmission_tower2(self):
         """Генерация дополнительной опоры ЛЭП для player2."""
         if not self.is_game_over:
-            tower = TransmissionTowerDuo(screen_height=self.height(), central=False)
-            tower.x = choice([410, 660])  # Левая и правая линия для player2
+            tower = TransmissionTowerDuo(screen_height=self.height())
             self.transmission_towers2.append(tower)
-
-    def spawn_street_lamp1(self):
-        """Генерация нового фонаря для player1."""
-        if not self.is_game_over:
-            lamp = StreetLampDuo(self.width(), self.height())
-            lamp.x = choice([1100, 1200, 1300])  # Центральная линия для player1
-            self.street_lamps1.append(lamp)
-
-    def spawn_street_lamp2(self):
-        """Генерация нового фонаря для player2."""
-        if not self.is_game_over:
-            lamp = StreetLampDuo(self.width(), self.height())
-            lamp.x = choice([600, 700, 800])  # Центральная линия для player2
-            self.street_lamps2.append(lamp)
 
     def paintEvent(self, event):
         try:
             self.painter.begin(self)
             # Рисуем дорогу
             self.tile_manager.draw_tiles(self.painter)
+
             # Накладываем градиент дня/ночи
             gradient = self.day_night.get_background_gradient(self.height())
             if gradient:
                 self.painter.setBrush(gradient)
                 self.painter.setPen(Qt.NoPen)
                 self.painter.drawRect(self.rect())
+
             # Рисуем линии движения
             self.power_line_duo.draw(self.painter, self.height())
+
             # Рисуем трейлы
             self.draw_trail(self.painter, self.trail1, self.trail_start_color1, self.trail_end_color1)
             self.draw_trail(self.painter, self.trail2, self.trail_start_color2, self.trail_end_color2)
@@ -253,39 +221,32 @@ class GameScreenDuo(QWidget):
                 self.player1.draw_light(self.painter)  # Отрисовка света для player1
             if self.player2.is_visible:
                 self.player2.draw_light(self.painter)  # Отрисовка света для player2
+
             # Отрисовка препятствий для player1 и player2
             for obstacle in self.obstacles1:
-                self.painter.fillRect(obstacle.get_rect(), self.obstacle_brush)
+                if obstacle:
+                    obstacle.draw(self.painter)
             for obstacle in self.obstacles2:
-                self.painter.fillRect(obstacle.get_rect(), self.obstacle_brush)
+                if obstacle:
+                    obstacle.draw(self.painter)
+
             # Рисуем опоры ЛЭП для player1 и player2
             for tower in self.transmission_towers1:
-                tower.draw(self.painter)
+                if tower:
+                    tower.draw(self.painter)
             for tower in self.transmission_towers2:
-                tower.draw(self.painter)
-            # Рисуем фонари для player1 и player2
-            for lamp in self.street_lamps1:
-                self.painter.fillRect(lamp.get_rect(), self.street_lamp_brush)  # Основа фонаря
-                lamp.draw_light(self.painter, self.height())  # Свет фонаря
-            for lamp in self.street_lamps2:
-                self.painter.fillRect(lamp.get_rect(), self.street_lamp_brush)  # Основа фонаря
-                lamp.draw_light(self.painter, self.height())  # Свет фонаря
+                if tower:
+                    tower.draw(self.painter)
+
             # Рисуем оголенные провода для player1 и player2
             for wire in self.exposed_wires1:
-                self.painter.fillRect(wire.get_rect(), QBrush(wire.color))
+                if wire:
+                    wire.draw(self.painter)
             for wire in self.exposed_wires2:
-                self.painter.fillRect(wire.get_rect(), QBrush(wire.color))
-            # Фонарь ночью
-            if self.day_night.should_draw_light():
-                light_pos = self.mapFromGlobal(self.cursor().pos())
-                if 0 <= light_pos.x() < self.width() and 0 <= light_pos.y() < self.height():
-                    self.light_gradient.setCenter(light_pos)
-                    self.light_gradient.setRadius(120)
-                    self.light_gradient.setColorAt(0, QColor(255, 240, 200, 120))
-                    self.light_gradient.setColorAt(1, QColor(255, 240, 200, 0))
-                    self.painter.setBrush(self.light_gradient)
-                    self.painter.setPen(Qt.NoPen)
-                    self.painter.drawEllipse(light_pos, 120, 120)
+                if wire:
+                    wire.draw(self.painter)
+
+
             # Отображение FPS
             if self.show_fps:
                 self.painter.setPen(QColor(255, 255, 255))
@@ -356,12 +317,28 @@ class GameScreenDuo(QWidget):
         self.target_distance = distance
         self.distance_traveled_player1 = 0
         self.distance_traveled_player2 = 0
-        # Запуск таймеров игры
         self.timer.start(16)
         self.time_timer.start(self.day_night.tick_interval_ms)
-        # Запуск таймеров спавна препятствий
-        self.obstacle_spawn_timer1.start(2000)  # Спавн каждые 2 секунды для player1
-        self.obstacle_spawn_timer2.start(2000)  # Спавн каждые 2 секунды для player2
+        self.obstacle_spawn_timer1.start(2000)
+        self.obstacle_spawn_timer2.start(2000)
+        self.exposed_wire_spawn_timer1.start(3000)
+        self.exposed_wire_spawn_timer2.start(3000)
+        self.tower_spawn_timer1.start(8000)
+        self.tower_spawn_timer1.start(8000)
+        self.tile_manager.init_tiles()
+        self.day_night.current_tick = 8200
+        self.short_circuit_bar_player1.setValue(0)
+        self.short_circuit_bar_player2.setValue(0)
+        self.player1 = PlayerDuo(player_id=1, y=520)
+        self.player2 = PlayerDuo(player_id=2, y=520)
+        self.trail1.clear()
+        self.trail2.clear()
+        self.obstacles1.clear()  # Препятствия для player1
+        self.obstacles2.clear()  # Препятствия для player2
+        self.transmission_towers1.clear()  # Опоры ЛЭП для player1
+        self.transmission_towers2.clear()  # Опоры ЛЭП для player2
+        self.exposed_wires1.clear()  # Оголенные провода для player1
+        self.exposed_wires2.clear()  # Оголенные провода для player2
 
     def update_game(self):
         """Обновление состояния игры."""
@@ -423,15 +400,6 @@ class GameScreenDuo(QWidget):
         # Удаление ушедших за экран оголенных проводов
         self.exposed_wires1 = [wire for wire in self.exposed_wires1 if not wire.is_off_screen(540)]
         self.exposed_wires2 = [wire for wire in self.exposed_wires2 if not wire.is_off_screen(540)]
-        for lamp in self.street_lamps1:
-            lamp.move()
-            lamp.update_light_state(self.day_night)
-        for lamp in self.street_lamps2:
-            lamp.move()
-            lamp.update_light_state(self.day_night)
-        # Удаление ушедших за экран фонарей
-        self.street_lamps1 = [lamp for lamp in self.street_lamps1 if not lamp.is_off_screen(540)]
-        self.street_lamps2 = [lamp for lamp in self.street_lamps2 if not lamp.is_off_screen(540)]
         # Проверка столкновений
         self.check_collisions()
         # Обновление тайлов
@@ -452,14 +420,6 @@ class GameScreenDuo(QWidget):
         self.update()
 
     def update_trail(self, player, trail, current_trail_x, target_trail_x, color):
-        """
-        Обновляет трейл для указанного игрока.
-        :param player: Экземпляр PlayerDuo.
-        :param trail: Список точек трейла.
-        :param current_trail_x: Текущая координата X трейла.
-        :param target_trail_x: Целевая координата X трейла.
-        :param color: Цвет трейла.
-        """
         current_speed = player.get_current_speed()  # Получаем текущую скорость игрока
         # Плавное обновление координаты X трейла
         if current_trail_x != target_trail_x:
@@ -467,7 +427,7 @@ class GameScreenDuo(QWidget):
             step = delta / self.trail_transition_speed
             current_trail_x += step
         # Добавление нескольких точек в трейл
-        num_points = max(1, int(current_speed / 5))  # Количество точек зависит от скорости
+        num_points = 1  # Количество точек зависит от скорости
         for i in range(num_points):
             factor = i / num_points  # Коэффициент интерполяции
             interpolated_x = int(current_trail_x + (target_trail_x - current_trail_x) * factor)
@@ -566,40 +526,11 @@ class GameScreenDuo(QWidget):
         msg.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
         choice = msg.exec_()
         if choice == QMessageBox.Retry:
-            self.reset_game()
+            self.is_game_over = False
+            self.set_target_distance(self.target_distance)
         else:
             if self.parent:
                 self.parent.setCurrentWidget(self.parent.main_menu)
-
-    def reset_game(self):
-        """Сброс состояния игры и полный рестарт."""
-        self.player1 = PlayerDuo(player_id=1, y=520)
-        self.player2 = PlayerDuo(player_id=2, y=520)
-        # Очистка списков объектов
-        self.trail1.clear()
-        self.trail2.clear()
-        self.obstacles1.clear()  # Препятствия для player1
-        self.obstacles2.clear()  # Препятствия для player2
-        self.transmission_towers1.clear()  # Опоры ЛЭП для player1
-        self.transmission_towers2.clear()  # Опоры ЛЭП для player2
-        self.exposed_wires1.clear()  # Оголенные провода для player1
-        self.exposed_wires2.clear()  # Оголенные провода для player2
-        self.street_lamps1.clear()  # Фонари для player1
-        self.street_lamps2.clear()  # Фонари для player2
-        # Сброс параметров игры
-        self.is_game_over = False
-        self.distance_traveled_player1 = 0
-        self.distance_traveled_player2 = 0
-        self.tile_manager.init_tiles()
-        self.day_night.current_tick = 8200
-        # Запускаем таймеры
-        self.timer.start(16)  # Основной игровой таймер
-        self.obstacle_spawn_timer1.start(2000)  # Спавн каждые 2 секунды для player1
-        self.obstacle_spawn_timer2.start(2000)  # Спавн каждые 2 секунды для player2
-        # Сброс шкалы КЗ
-        self.short_circuit_bar_player1.setValue(0)
-        self.short_circuit_bar_player2.setValue(0)
-
     def toggle_pause(self):
         if hasattr(self, "is_paused"):
             self.is_paused = not self.is_paused
@@ -609,7 +540,7 @@ class GameScreenDuo(QWidget):
             self.timer.stop()
             if self.parent:
                 self.parent.main_menu.current_mode = "duo"
-                self.parent.pause_menu.set_last_frame(self.grab())  # Захватываем последний кадр игры
+                self.parent.pause_menu.set_last_frame(self.grab())
                 self.parent.setCurrentWidget(self.parent.pause_menu)
         else:
             self.timer.start(16)
