@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QMessageBox, QProgressBar
 from PyQt5.QtGui import QPainter, QColor, QBrush, QRadialGradient, QFont, QPixmap
 
 from engine.player_duo import PlayerDuo
-from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, ExposedWireDuo
+from engine.obstacle_duo import ObstacleDuo, PowerLineDuo, TransmissionTowerDuo, ExposedWireDuo, Seporator
 from engine.day_night import DayNightSystem
 from engine.tile_manager_duo import TileManagerDuo
 from collections import deque
@@ -45,8 +45,8 @@ class GameScreenDuo(QWidget):
         # Создаём начальные тайлы
         self.tile_manager.init_tiles()
         # Игроки
-        self.player1 = PlayerDuo(player_id=1, y=520)
-        self.player2 = PlayerDuo(player_id=2, y=520)
+        self.player1 = PlayerDuo(player_id=1)
+        self.player2 = PlayerDuo(player_id=2)
         # Прогресс-бар для шкалы КЗ левого игрока (синий)
         self.short_circuit_bar_player1 = QProgressBar(self)
         self.short_circuit_bar_player1.setGeometry(10, 10, 300, 20)  # Размеры прогресс-бара
@@ -85,6 +85,11 @@ class GameScreenDuo(QWidget):
         self.short_circuit_bar_player2.show()
         # Линии
         self.power_line_duo = PowerLineDuo()
+
+
+        #Сепо
+        self.sepo = Seporator()
+
         # Трейлы для обоих игроков
         self.max_trail_length = 20  # Максимальная длина трейла
         self.trail1 = []  # Используем list вместо deque
@@ -155,7 +160,7 @@ class GameScreenDuo(QWidget):
         MAX_OBSTACLES_PER_PLAYER = 20
         if not self.is_game_over and len(self.obstacles1) < MAX_OBSTACLES_PER_PLAYER:
             obstacle = ObstacleDuo()
-            obstacle.x = choice([1100, 1200, 1300])  # Правая сторона для player1
+            obstacle.x = choice([1313, 1567, 1807])  # Правая сторона для player1
             self.obstacles1.append(obstacle)
 
     def spawn_obstacle2(self):
@@ -163,33 +168,36 @@ class GameScreenDuo(QWidget):
         MAX_OBSTACLES_PER_PLAYER = 20
         if not self.is_game_over and len(self.obstacles2) < MAX_OBSTACLES_PER_PLAYER:
             obstacle = ObstacleDuo()
-            obstacle.x = choice([600, 700, 800])  # Левая сторона для player2
+            obstacle.x = choice([73, 327, 567])  # Левая сторона для player2
             self.obstacles2.append(obstacle)
 
     def spawn_exposed_wire1(self):
         """Генерация нового оголенного провода для player1."""
         if not self.is_game_over:
             wire = ExposedWireDuo(self.width(), self.height())
-            wire.x = choice([1100, 1200, 1300])  # Правая сторона для player1
+            wire.x = choice([1313, 1567, 1807])
+              # Правая сторона для player1
             self.exposed_wires1.append(wire)
 
     def spawn_exposed_wire2(self):
         """Генерация нового оголенного провода для player2."""
         if not self.is_game_over:
             wire = ExposedWireDuo(self.width(), self.height())
-            wire.x = choice([600, 700, 800])  # Левая сторона для player2
+            wire.x = choice([73, 327, 567])  # Левая сторона для player2
             self.exposed_wires2.append(wire)
 
     def spawn_transmission_tower1(self):
         """Генерация дополнительной опоры ЛЭП для player1."""
         if not self.is_game_over:
             tower = TransmissionTowerDuo(screen_height=self.height())
+            tower.x = 40
             self.transmission_towers1.append(tower)
 
     def spawn_transmission_tower2(self):
         """Генерация дополнительной опоры ЛЭП для player2."""
         if not self.is_game_over:
             tower = TransmissionTowerDuo(screen_height=self.height())
+            tower.x = 1280
             self.transmission_towers2.append(tower)
 
     def paintEvent(self, event):
@@ -198,45 +206,17 @@ class GameScreenDuo(QWidget):
             # Рисуем дорогу
             self.tile_manager.draw_tiles(self.painter)
 
-            # Накладываем градиент дня/ночи
-            gradient = self.day_night.get_background_gradient(self.height())
-            if gradient:
-                self.painter.setBrush(gradient)
-                self.painter.setPen(Qt.NoPen)
-                self.painter.drawRect(self.rect())
-
-            # Рисуем линии движения
-            self.power_line_duo.draw(self.painter, self.height())
-
-            # Рисуем трейлы
-            self.draw_trail(self.painter, self.trail1, self.trail_start_color1, self.trail_end_color1)
-            self.draw_trail(self.painter, self.trail2, self.trail_start_color2, self.trail_end_color2)
-            # Рисуем разделитель
-            separator_width = 50  # Ширина разделителя
-            separator_x = self.width() // 2 - separator_width // 2  # Центр экрана
-            separator_rect = QRect(separator_x, 0, separator_width, self.height())
-            self.painter.fillRect(separator_rect, self.separator_brush)
-            # Отрисовка света для игроков
-            if self.player1.is_visible:
-                self.player1.draw_light(self.painter)  # Отрисовка света для player1
-            if self.player2.is_visible:
-                self.player2.draw_light(self.painter)  # Отрисовка света для player2
-
-            # Отрисовка препятствий для player1 и player2
-            for obstacle in self.obstacles1:
-                if obstacle:
-                    obstacle.draw(self.painter)
-            for obstacle in self.obstacles2:
-                if obstacle:
-                    obstacle.draw(self.painter)
-
             # Рисуем опоры ЛЭП для player1 и player2
             for tower in self.transmission_towers1:
                 if tower:
                     tower.draw(self.painter)
+
             for tower in self.transmission_towers2:
                 if tower:
                     tower.draw(self.painter)
+
+            # Рисуем линии движения
+            self.power_line_duo.draw(self.painter, self.height())
 
             # Рисуем оголенные провода для player1 и player2
             for wire in self.exposed_wires1:
@@ -246,6 +226,40 @@ class GameScreenDuo(QWidget):
                 if wire:
                     wire.draw(self.painter)
 
+            # Накладываем градиент дня/ночи
+            gradient = self.day_night.get_background_gradient(self.height())
+            if gradient:
+                self.painter.setBrush(gradient)
+                self.painter.setPen(Qt.NoPen)
+                self.painter.drawRect(self.rect())
+
+            # Отрисовка препятствий для player1 и player2
+            for obstacle in self.obstacles1:
+                if obstacle:
+                    obstacle.draw(self.painter)
+            for obstacle in self.obstacles2:
+                if obstacle:
+                    obstacle.draw(self.painter)
+
+            # Рисуем трейлы
+            self.draw_trail(self.painter, self.trail1, self.trail_start_color1, self.trail_end_color1)
+            self.draw_trail(self.painter, self.trail2, self.trail_start_color2, self.trail_end_color2)
+
+            # Рисуем разделитель
+            separator_width = 50  # Ширина разделителя
+            separator_x = self.width() // 2 - separator_width // 2  # Центр экрана
+            separator_rect = QRect(separator_x, 0, separator_width, self.height())
+            self.painter.fillRect(separator_rect, self.separator_brush)
+
+            # Отрисовка света для игроков
+            if self.player1.is_visible:
+                self.player1.draw_light(self.painter)  # Отрисовка света для player1
+            if self.player2.is_visible:
+                self.player2.draw_light(self.painter)  # Отрисовка света для player2
+
+
+            # Рисуем линии движения
+            self.sepo.draw(self.painter, self.height())
 
             # Отображение FPS
             if self.show_fps:
@@ -324,13 +338,11 @@ class GameScreenDuo(QWidget):
         self.exposed_wire_spawn_timer1.start(3000)
         self.exposed_wire_spawn_timer2.start(3000)
         self.tower_spawn_timer1.start(8000)
-        self.tower_spawn_timer1.start(8000)
+        self.tower_spawn_timer2.start(8000)
         self.tile_manager.init_tiles()
         self.day_night.current_tick = 8200
         self.short_circuit_bar_player1.setValue(0)
         self.short_circuit_bar_player2.setValue(0)
-        self.player1 = PlayerDuo(player_id=1, y=520)
-        self.player2 = PlayerDuo(player_id=2, y=520)
         self.trail1.clear()
         self.trail2.clear()
         self.obstacles1.clear()  # Препятствия для player1
@@ -365,6 +377,7 @@ class GameScreenDuo(QWidget):
         elif self.distance_traveled_player2 >= self.target_distance:
             self.show_victory(winner="Игрок 2")
             return
+
         # Обновление трейлов для обоих игроков
         self.current_trail_x1 = self.update_trail(
             self.player1, self.trail1, self.current_trail_x1, self.target_trail_x1, self.trail_color1
@@ -372,38 +385,48 @@ class GameScreenDuo(QWidget):
         self.current_trail_x2 = self.update_trail(
             self.player2, self.trail2, self.current_trail_x2, self.target_trail_x2, self.trail_color2
         )
+
         # Передвижение препятствий для player1
         for obstacle in self.obstacles1:
             obstacle.speed = self.player1.get_current_speed()  # Устанавливаем скорость препятствия равной скорости игрока
-            obstacle.move()
+            obstacle.move(self.player1.get_current_speed())
         # Удаление препятствий, которые вышли за пределы экрана
         self.obstacles1 = [o for o in self.obstacles1 if not o.is_off_screen()]
+
         # Передвижение препятствий для player2
         for obstacle in self.obstacles2:
             obstacle.speed = self.player2.get_current_speed()  # Устанавливаем скорость препятствия равной скорости игрока
-            obstacle.move()
+            obstacle.move(self.player2.get_current_speed())
         # Удаление препятствий, которые вышли за пределы экрана
         self.obstacles2 = [o for o in self.obstacles2 if not o.is_off_screen()]
+
         # Передвижение опор ЛЭП для player1
         for tower in self.transmission_towers1:
-            tower.move(self.player1.get_current_speed())
+            tower.move(self.player2.get_current_speed())
+
         # Передвижение опор ЛЭП для player2
         for tower in self.transmission_towers2:
-            tower.move(self.player2.get_current_speed())
+            tower.move(self.player1.get_current_speed())
+
         # Удаление ушедших за экран опор ЛЭП
         self.transmission_towers1 = [tower for tower in self.transmission_towers1 if not tower.is_off_screen()]
         self.transmission_towers2 = [tower for tower in self.transmission_towers2 if not tower.is_off_screen()]
+
         for wire in self.exposed_wires1:
-            wire.move()
+            wire.move(self.player1.get_current_speed())
         for wire in self.exposed_wires2:
-            wire.move()
+            wire.move(self.player2.get_current_speed())
+
         # Удаление ушедших за экран оголенных проводов
         self.exposed_wires1 = [wire for wire in self.exposed_wires1 if not wire.is_off_screen(540)]
         self.exposed_wires2 = [wire for wire in self.exposed_wires2 if not wire.is_off_screen(540)]
+
         # Проверка столкновений
         self.check_collisions()
+
         # Обновление тайлов
         self.tile_manager.update_tiles(speed_player1, speed_player2)
+
         # Подсчет FPS
         self.frame_count += 1
         current_time = perf_counter()
