@@ -27,7 +27,7 @@ class GameScreen(QWidget):
         self.day_night = DayNightSystem()
         self.target_distance = 0
         self.distance_traveled = 0
-        self.speed_to_meters_coefficient = 0.5
+        self.speed_to_meters_coefficient = 0.3
         self.speed = 10
         self.side_panel_label = QLabel(self)
         self.side_panel_pixmap = QPixmap("assets/textures/side_panel.png")
@@ -135,7 +135,7 @@ class GameScreen(QWidget):
         self.time_label.setStyleSheet("""
             color: #B29400; 
             font-family: Consolas;  
-            font-size: 72px; 
+            font-size: 64px; 
             font-weight: bold; 
         """)
         self.time_label.setGeometry(175, 205, 200, 100)
@@ -308,15 +308,15 @@ class GameScreen(QWidget):
             # 3. Отрисовка линий ЛЭП
             self.power_line.draw(self.painter, self.height())
 
-            # 4. Отрисовка паверапов
-            for powerup in self.active_powerups:
-                if powerup:
-                    powerup.draw(self.painter)
-
-            # 5. Отрисовка оголенных проводов с текстурой
+            # 4. Отрисовка оголенных проводов с текстурой
             for exposed_wire in self.exposed_wires:
                 if exposed_wire:
                     exposed_wire.draw(self.painter)
+
+            # 5. Отрисовка паверапов
+            for powerup in self.active_powerups:
+                if powerup:
+                    powerup.draw(self.painter)
 
 
             # 6. Накладываем градиент дня/ночи
