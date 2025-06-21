@@ -371,9 +371,19 @@ class GameScreen(QWidget):
         self.update()
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        scan = event.nativeScanCode()
+
+        SC_ESCAPE = 1
+        SC_TILDE = 41
+        SC_LEFT = 30
+        SC_RIGHT = 32
+        SC_UP = 17
+        SC_DOWN = 31
+
+        if scan == SC_ESCAPE:
             self.toggle_pause()
-        elif event.text() == '~':
+
+        elif scan == SC_TILDE:
             if self.parent:
                 if self.parent.debug_menu.isVisible():
                     self.parent.debug_menu.hide()
@@ -382,11 +392,20 @@ class GameScreen(QWidget):
                     self.parent.debug_menu.show()
                     self.parent.debug_menu.raise_()
                     self.parent.debug_menu.setFocus()
-        elif event.key() in [Qt.Key_A, Qt.Key_D]:
-            self.player.move(event.key())
+
+        elif scan == SC_LEFT:
+            self.player.move(Qt.Key_A)
             self.target_trail_x = self.player.x + 15
-        elif event.key() in [Qt.Key_W, Qt.Key_S]:
-            self.player.change_speed(event.key())
+
+        elif scan == SC_RIGHT:
+            self.player.move(Qt.Key_D)
+            self.target_trail_x = self.player.x + 15
+
+        elif scan == SC_UP:
+            self.player.change_speed(Qt.Key_W)
+
+        elif scan == SC_DOWN:
+            self.player.change_speed(Qt.Key_S)
 
     def set_target_distance(self, distance):
         self.is_game_over = False
