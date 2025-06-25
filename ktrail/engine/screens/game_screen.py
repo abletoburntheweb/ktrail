@@ -73,14 +73,6 @@ class GameScreen(QWidget):
         self.powerup_spawn_timer = QTimer(self)
         self.powerup_spawn_timer.timeout.connect(self.spawn_powerup)
 
-        self.trail = []
-        self.max_trail_length = 20
-        self.trail_width = 10
-        self.trail_color = QColor("#4aa0fc")
-        self.target_trail_x = self.player.x + 15
-        self.current_trail_x = self.player.x + 15
-        self.trail_transition_speed = 5
-
         self.power_line = PowerLine()
 
         self.timer = QTimer(self)
@@ -93,12 +85,6 @@ class GameScreen(QWidget):
         self.total_removed_obstacles = 0
 
         self.painter = QPainter()
-        self.player_brush = QBrush(Qt.red)
-        self.obstacle_brush = QBrush(Qt.black)
-        self.powerup_brush = QBrush(Qt.green)
-        self.exposed_wire_brush = QBrush(QColor("#f80000"))
-        self.trail_start_color = QColor("#4aa0fc")
-        self.trail_end_color = QColor("#FFFFFF")
 
         side_panel_width = self.side_panel_pixmap.width()
         side_panel_height = self.side_panel_pixmap.height()
@@ -293,6 +279,7 @@ class GameScreen(QWidget):
     def paintEvent(self, event):
         try:
             self.painter.begin(self)
+            self.painter.setRenderHint(QPainter.Antialiasing, True)
 
             # 1. Рисуем тайлы
             self.tile_manager.draw_tiles(self.painter)
@@ -332,13 +319,7 @@ class GameScreen(QWidget):
                     obstacle.draw(self.painter)
 
             # 8. Отрисовка трейла игрока
-            for i, (x, y) in enumerate(self.trail):
-                alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
-                factor = i / self.max_trail_length
-                interpolated_color = self.parent.interpolate_color(self.trail_start_color, self.trail_end_color, factor) \
-                    if hasattr(self.parent, "interpolate_color") else self.trail_start_color
-                interpolated_color.setAlpha(max(0, alpha))
-                self.painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
+            self.player.draw_trail(self.painter)
 
             # 9. Отрисовка игрока
             if self.player:
@@ -360,6 +341,7 @@ class GameScreen(QWidget):
 
             timer_text = f"Время: {self.elapsed_time:.1f} сек"
             self.painter.drawText(10, 90, timer_text)
+
 
         except Exception as e:
             print(f"Ошибка в paintEvent: {e}")
@@ -416,7 +398,6 @@ class GameScreen(QWidget):
         self.player = Player()
         self.obstacles.clear()
         self.cars.clear()
-        self.trail.clear()
         self.exposed_wires.clear()
         self.transmission_towers.clear()
         self.tile_manager.init_tiles()
@@ -427,8 +408,8 @@ class GameScreen(QWidget):
         self.car_spawn_timer.start(5000)
         self.exposed_wire_spawn_timer.start(3000)
         self.powerup_spawn_timer.start(15000)
-        self.target_trail_x = self.player.x+15
         self.time_timer.start(self.day_night.tick_interval_ms)
+
     def update_game(self):
         if self.is_game_over:
             return
@@ -456,6 +437,8 @@ class GameScreen(QWidget):
 
         self.update_distance_text(self.distance_traveled, self.target_distance)
 
+        self.player.update_trail(self.player.speed)
+
         self.update_time_text(self.elapsed_time)
 
         short_circuit_level = self.player.get_short_circuit_level()
@@ -471,23 +454,6 @@ class GameScreen(QWidget):
         while current_image_count > current_speed_level - 1:
             self.remove_speed_image()
             current_image_count -= 1
-
-        if self.current_trail_x != self.target_trail_x:
-            delta = self.target_trail_x - self.current_trail_x
-            step = delta / self.trail_transition_speed
-            self.current_trail_x += step
-
-        num_points = 1
-        for i in range(num_points):
-            factor = i / num_points
-            interpolated_x = int(self.current_trail_x + (self.target_trail_x - self.current_trail_x) * factor)
-            y_offset = i * (self.player.speed // num_points)
-            self.trail.insert(0, (interpolated_x, self.player.y - y_offset))
-
-        if len(self.trail) > self.max_trail_length:
-            self.trail = self.trail[:self.max_trail_length]
-
-        self.trail = [(x, y + self.player.speed) for x, y in self.trail]
 
         for obstacle in self.obstacles:
             obstacle.move(self.player.speed)
@@ -523,12 +489,8 @@ class GameScreen(QWidget):
         player_rect = self.player.get_rect()
         for powerup in self.active_powerups[:]:
             if player_rect.intersects(powerup.get_rect()):
-                powerup.activate(self.player, self)
+                self.player.apply_powerup(powerup, self)
                 self.active_powerups.remove(powerup)
-
-                if isinstance(powerup, SpeedBoost):
-                    self.toggle_green_stage(True)
-                    QTimer.singleShot(powerup.duration * 1000, lambda: self.toggle_green_stage(False))
 
         self.active_powerups = [pu for pu in self.active_powerups if not pu.is_off_screen(self.height())]
 
@@ -537,18 +499,8 @@ class GameScreen(QWidget):
         self.update()
 
     def check_collisions(self):
-        player_rect = self.player.get_rect()
-        if self.player.get_short_circuit_level() >= self.player.short_circuit_max:
+        if self.player.handle_collisions(self.obstacles, self.exposed_wires):
             self.show_game_over()
-            return
-        for obstacle in self.obstacles:
-            if player_rect.intersects(obstacle.get_rect()):
-                self.show_game_over()
-                return
-        for exposed_wire in self.exposed_wires:
-            if player_rect.intersects(exposed_wire.get_rect()):
-                self.show_game_over()
-                return
 
     def save_record(self, distance, time):
         try:
