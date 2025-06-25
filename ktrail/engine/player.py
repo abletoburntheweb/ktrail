@@ -1,6 +1,5 @@
 from PyQt5.QtCore import Qt, QRect, QTimer
-from PyQt5.QtGui import QColor, QRadialGradient
-
+from PyQt5.QtGui import QColor, QRadialGradient, QBrush
 
 class Player:
     def __init__(self, y=780, size=40):
@@ -23,41 +22,47 @@ class Player:
         self.short_circuit_timer.timeout.connect(self.update_short_circuit)
         self.short_circuit_timer.start(100)
 
+        # Свет игрока
         self.light_radius = 80
-        self.light_color = QColor("#ff6b6b")
+        self.light_color = QColor("#4aa0fc")
         self.is_light_on = True
+
+        # Трейл
+        self.trail = []
+        self.max_trail_length = 20
+        self.trail_width = 10
+        self.trail_start_color = QColor("#4aa0fc")
+        self.trail_end_color = QColor("#FFFFFF")
+        self.target_trail_x = self.x + 15
+        self.current_trail_x = self.target_trail_x
+        self.trail_transition_speed = 5
 
     def draw_player_light(self, painter):
         if self.is_light_on:
-            light_radius = 80
-            light_color = QColor("#4aa0fc")
-
-            player_rect = self.get_rect()
-            light_pos_x = player_rect.center().x()
-            light_pos_y = player_rect.center().y()
-
-            gradient = QRadialGradient(light_pos_x, light_pos_y, light_radius)
-            gradient.setColorAt(0, light_color)
+            light_pos_x = self.x + self.size // 2
+            light_pos_y = self.y + self.size // 2
+            gradient = QRadialGradient(light_pos_x, light_pos_y, self.light_radius)
+            gradient.setColorAt(0, self.light_color)
             gradient.setColorAt(1, QColor(255, 240, 200, 0))
-
             painter.setBrush(gradient)
             painter.setPen(Qt.NoPen)
-            painter.drawEllipse(
-                light_pos_x - light_radius,
-                light_pos_y - light_radius,
-                light_radius * 2,
-                light_radius * 2
-            )
+            painter.drawEllipse(light_pos_x - self.light_radius,
+                                light_pos_y - self.light_radius,
+                                self.light_radius * 2,
+                                self.light_radius * 2)
+
 
     def move(self, key):
         if key == Qt.Key_A:
             if self.current_x_index > 0:
                 self.current_x_index -= 1
                 self.x = self.x_positions[self.current_x_index]
+                self.target_trail_x = self.x + 15
         elif key == Qt.Key_D:
             if self.current_x_index < len(self.x_positions) - 1:
                 self.current_x_index += 1
                 self.x = self.x_positions[self.current_x_index]
+                self.target_trail_x = self.x + 15
 
     def change_speed(self, key):
         if not self.can_change_speed:
@@ -95,6 +100,7 @@ class Player:
             self.short_circuit_level = self.paused_short_circuit_level
             self.paused_short_circuit_level = None
             self.short_circuit_timer.start(100)
+
     def update_short_circuit(self):
         if self.short_circuit_level <= 0 and self.current_speed_index < 2:
             return
@@ -119,3 +125,56 @@ class Player:
 
     def get_rect(self):
         return QRect(int(self.x), int(self.y), self.size, self.size)
+
+    def update_trail(self, speed):
+        if self.current_trail_x != self.target_trail_x:
+            delta = self.target_trail_x - self.current_trail_x
+            step = delta / self.trail_transition_speed
+            self.current_trail_x += step
+
+        num_points = 1
+        for i in range(num_points):
+            factor = i / num_points
+            interpolated_x = int(self.current_trail_x + (self.target_trail_x - self.current_trail_x) * factor)
+            y_offset = i * (speed // num_points)
+            self.trail.insert(0, (interpolated_x, self.y - y_offset))
+
+        if len(self.trail) > self.max_trail_length:
+            self.trail = self.trail[:self.max_trail_length]
+
+        self.trail = [(x, y + speed) for x, y in self.trail]
+
+    def draw_trail(self, painter):
+        for i, (x, y) in enumerate(self.trail):
+            alpha = int(255 * (1 - (i / self.max_trail_length) ** 2))
+            factor = i / self.max_trail_length
+            r, g, b = self.trail_start_color.red(), self.trail_start_color.green(), self.trail_start_color.blue()
+            r2, g2, b2 = self.trail_end_color.red(), self.trail_end_color.green(), self.trail_end_color.blue()
+            ir = r + (r2 - r) * factor
+            ig = g + (g2 - g) * factor
+            ib = b + (b2 - b) * factor
+            color = QColor(int(ir), int(ig), int(ib), alpha)
+
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QBrush(color))
+            painter.drawEllipse(x, y, self.trail_width, self.trail_width)
+
+    def check_collision_with(self, obj):
+        return self.get_rect().intersects(obj.get_rect())
+
+    def handle_collisions(self, obstacles, exposed_wires):
+        for obstacle in obstacles:
+            if self.check_collision_with(obstacle):
+                return True
+        for wire in exposed_wires:
+            if self.check_collision_with(wire):
+                return True
+        return False
+
+    def apply_powerup(self, powerup, game_screen=None):
+        if hasattr(powerup, "activate"):
+            powerup.activate(self, game_screen)
+
+    def remove_powerup(self, powerup, game_screen=None):
+        if hasattr(powerup, "deactivate"):
+            powerup.deactivate(self, game_screen)
