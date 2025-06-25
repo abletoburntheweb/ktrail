@@ -437,13 +437,6 @@ class GameScreenDuo(QWidget):
 
             self.power_line_duo.draw(self.painter, self.height())
 
-            for wire in self.exposed_wires1:
-                if wire:
-                    wire.draw(self.painter)
-            for wire in self.exposed_wires2:
-                if wire:
-                    wire.draw(self.painter)
-
             for powerup in self.active_powerups1:
                 if powerup:
                     powerup.draw(self.painter)
@@ -457,6 +450,13 @@ class GameScreenDuo(QWidget):
                 self.painter.setBrush(gradient)
                 self.painter.setPen(Qt.NoPen)
                 self.painter.drawRect(self.rect())
+
+            for wire in self.exposed_wires1:
+                if wire:
+                    wire.draw(self.painter)
+            for wire in self.exposed_wires2:
+                if wire:
+                    wire.draw(self.painter)
 
             for obstacle in self.obstacles1:
                 if obstacle:
@@ -515,7 +515,7 @@ class GameScreenDuo(QWidget):
         self.target_distance = distance
         self.distance_traveled_player1 = 0
         self.distance_traveled_player2 = 0
-        self.timer.start(12)
+        self.timer.start(14)
         self.time_timer.start(self.day_night.tick_interval_ms)
         self.obstacle_spawn_timer1.start(2000)
         self.obstacle_spawn_timer2.start(2000)
@@ -564,10 +564,10 @@ class GameScreenDuo(QWidget):
             self.player2.distance_penalty = 0
 
             if self.distance_traveled_player1 >= self.target_distance and self.distance_traveled_player2 < self.target_distance:
-                self.show_victory(winner="Игрок 1")
+                self.show_victory(winner="Игрок 2")
                 return
             elif self.distance_traveled_player2 >= self.target_distance and self.distance_traveled_player1 < self.target_distance:
-                self.show_victory(winner="Игрок 2")
+                self.show_victory(winner="Игрок 1")
                 return
             elif self.distance_traveled_player1 >= self.target_distance and self.distance_traveled_player2 >= self.target_distance:
                 self.show_draw()

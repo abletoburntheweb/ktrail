@@ -295,11 +295,6 @@ class GameScreen(QWidget):
             # 3. Отрисовка линий ЛЭП
             self.power_line.draw(self.painter, self.height())
 
-            # 4. Отрисовка оголенных проводов с текстурой
-            for exposed_wire in self.exposed_wires:
-                if exposed_wire:
-                    exposed_wire.draw(self.painter)
-
             # 5. Отрисовка паверапов
             for powerup in self.active_powerups:
                 if powerup:
@@ -312,6 +307,12 @@ class GameScreen(QWidget):
                 self.painter.setBrush(gradient)
                 self.painter.setPen(Qt.NoPen)
                 self.painter.drawRect(self.rect())
+
+
+            # 4. Отрисовка оголенных проводов с текстурой
+            for exposed_wire in self.exposed_wires:
+                if exposed_wire:
+                    exposed_wire.draw(self.painter)
 
             # 7. Отрисовка препятствий с текстурой
             for obstacle in self.obstacles:
@@ -401,7 +402,7 @@ class GameScreen(QWidget):
         self.exposed_wires.clear()
         self.transmission_towers.clear()
         self.tile_manager.init_tiles()
-        self.timer.start(12)
+        self.timer.start(14)
         self.obstacle_spawn_timer.start(2000)
         self.car_spawn_timer.start(5000)
         self.tower_spawn_timer.start(8000)
