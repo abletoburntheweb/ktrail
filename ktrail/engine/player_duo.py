@@ -15,10 +15,10 @@ class PlayerDuo:
         else:
             self.x_positions = [73, 327, 567]
             self.controls = {
-                'left': Qt.Key_A,
-                'right': Qt.Key_D,
-                'speed_up': Qt.Key_W,
-                'slow_down': Qt.Key_S
+                'left': 30,
+                'right': 32,
+                'speed_up': 17,
+                'slow_down': 31
             }
         self.player_id = player_id
 
@@ -162,7 +162,6 @@ class PlayerDuo:
         self.can_change_speed = False
         self.speed_change_block_timer.start(2000)
 
-        # Если SpeedBoost активен, деактивируем его
         if self.is_speed_boost_active:
             if self.original_speed_levels is not None and self.original_current_speed_index is not None:
                 self.speed_levels = self.original_speed_levels

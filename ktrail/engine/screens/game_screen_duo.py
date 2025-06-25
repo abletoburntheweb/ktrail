@@ -498,17 +498,26 @@ class GameScreenDuo(QWidget):
             painter.fillRect(x, y, self.trail_width, self.trail_width, QBrush(interpolated_color))
 
     def keyPressEvent(self, event):
+        scan_code = event.nativeScanCode()
+
+        SC_LEFT_2 = 30
+        SC_RIGHT_2 = 32
+        SC_UP_2 = 17
+        SC_DOWN_2 = 31
+
         if event.key() == Qt.Key_Escape:
             self.toggle_pause()
         else:
             self.player1.move(event.key())
-            self.player2.move(event.key())
             self.target_trail_x1 = self.player1.x + 15
-            self.target_trail_x2 = self.player2.x + 15
             if event.key() in [Qt.Key_Up, Qt.Key_Down]:
                 self.player1.change_speed(event.key())
-            if event.key() in [Qt.Key_W, Qt.Key_S]:
-                self.player2.change_speed(event.key())
+
+            if scan_code in [SC_LEFT_2, SC_RIGHT_2]:
+                self.player2.move(scan_code)
+                self.target_trail_x2 = self.player2.x + 15
+            if scan_code in [SC_UP_2, SC_DOWN_2]:
+                self.player2.change_speed(scan_code)
 
     def set_target_distance(self, distance):
         self.is_game_over = False
